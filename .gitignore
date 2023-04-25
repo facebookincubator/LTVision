@@ -1,0 +1,16 @@
+.DS_store
+.ipynb_checkpoints/
+__pycache__/
+venv/
+
+# Ignore all text files
+*.txt
+!requirements.txt
+*.pickle
+
+# Ignore files related to API keys
+.env
+
+# Ignore everything related to clients
+client_data/
+client_notebooks/
