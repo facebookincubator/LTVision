@@ -3,14 +3,12 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-import warnings
 
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
 import seaborn as sns
-from matplotlib import image as mpimg
 from sklearn.metrics import accuracy_score, r2_score
 
 
@@ -257,7 +255,7 @@ class LTVexploratory:
         sns.heatmap(cor, annot=True,
                     cmap=sns.cubehelix_palette(start=.5, rot=-.75, as_cmap=True),
                     ax=ax)
-        plt.title("Share of users who didn't change their classification flag (no-payers, low-payer, mid-payer, high-payer) across periods");
+        plt.title("Share of users who didn't change their classification flag (no-payers, low-payer, mid-payer, high-payer) across periods")
 
 
     def plot_drop_off(self):
