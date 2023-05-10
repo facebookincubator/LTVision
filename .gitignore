@@ -3,10 +3,12 @@
 __pycache__/
 venv/
 
-# Ignore all text files
+# Ignore all text/pdf/pickle/parquet files
 *.txt
 !requirements.txt
 *.pickle
+*.pdf
+*.parquet
 
 # Ignore files related to API keys
 .env
@@ -14,3 +16,6 @@ venv/
 # Ignore everything related to clients
 client_data/
 client_notebooks/
+
+#Ignore testing files for the moment
+pytest/
