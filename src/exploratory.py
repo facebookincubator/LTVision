@@ -10,7 +10,7 @@ import pandas as pd
 import plotly.graph_objects as go
 import seaborn as sns
 from sklearn.metrics import accuracy_score, r2_score
-
+from IPython.display import display
 
 class LTVexploratory:
     """This class helps to perform some initial analyses
