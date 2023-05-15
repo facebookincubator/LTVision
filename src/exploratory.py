@@ -179,12 +179,9 @@ class LTVexploratory:
 
     def plot_sankey(self):
         ind = ~self._payer_types[self._ltv_horizon].isna()
-        print(self._payer_types)
         pivot_count_table = self._payer_types.loc[ind, [self._period, self._ltv_horizon]].astype(str).reset_index().pivot_table(index=self._period, columns=self._ltv_horizon,
         values='UUID', aggfunc='count').fillna(0)
-        print(pivot_count_table)
         pivot_count_table = pivot_count_table/pivot_count_table.sum().sum()
-
         source = sum([[x]*len(pivot_count_table.columns) for x in pivot_count_table.index.to_list()], [])
         target = pivot_count_table.columns.to_list() * len(pivot_count_table.index)
         value = [pivot_count_table.loc[x,y]*100 for x,y in zip(source, target)]
