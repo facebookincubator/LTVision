@@ -13,16 +13,18 @@ from sklearn.metrics import accuracy_score, r2_score
 
 
 class LTVexploratory:
-    """This class helps to perform som initial analysis
+    """This class helps to perform some initial analyses
     """
 
     def __init__(self,
                  data_ancor,
-                 data_events):
+                 data_events,
+                 initial_period = 7,
+                 ltv_horizon = 70):
         self.data_ancor = data_ancor
         self.data_events = data_events
-        self._period = 7
-        self._period_for_ltv = 7*10
+        self._period = initial_period
+        self._ltv_horizon = ltv_horizon
         self._prep_df()
         self._prep_LTV_periods()
         self._prep_payer_types()
@@ -37,7 +39,6 @@ class LTVexploratory:
         uuid_stat['number_uuid'] = [len(ancor_uuid - event_uuid), len(event_uuid - ancor_uuid), len(event_uuid & ancor_uuid)]
         uuid_stat['share_uuid'] = uuid_stat['number_uuid'].map(lambda x: f"{x/uuid_stat['number_uuid'].sum():.2%}")
         display(uuid_stat)
-
 
         # Join two tables, I will analyse only data in event table, because we can't do anything with users who don't have purchase histiry
         data_upload_date = self.data_ancor['time_of_the_event'].max()
@@ -177,9 +178,11 @@ class LTVexploratory:
         plt.title('R2 between normalised LTV for different days')
 
     def plot_sankey(self):
-        ind = ~self._payer_types[self._period_for_ltv].isna()
-        pivot_count_table = self._payer_types.loc[ind, [self._period, self._period_for_ltv]].astype(str).reset_index().pivot_table(index=self._period, columns=self._period_for_ltv,
+        ind = ~self._payer_types[self._ltv_horizon].isna()
+        print(self._payer_types)
+        pivot_count_table = self._payer_types.loc[ind, [self._period, self._ltv_horizon]].astype(str).reset_index().pivot_table(index=self._period, columns=self._ltv_horizon,
         values='UUID', aggfunc='count').fillna(0)
+        print(pivot_count_table)
         pivot_count_table = pivot_count_table/pivot_count_table.sum().sum()
 
         source = sum([[x]*len(pivot_count_table.columns) for x in pivot_count_table.index.to_list()], [])
@@ -213,7 +216,7 @@ class LTVexploratory:
             color =  [dict_translate[x]['color_link'] for x in target]
         )
         )])
-        for x_coordinate, column_name in enumerate([f"{self._period}-day Revenue", f"{self._period_for_ltv}-day Revenue"]):
+        for x_coordinate, column_name in enumerate([f"{self._period}-day Revenue", f"{self._ltv_horizon}-day Revenue"]):
             fig.add_annotation(
                     x=x_coordinate,
                     y=1.1,
@@ -240,7 +243,7 @@ class LTVexploratory:
         'zeroline': False, # thick line at x=0
         'visible': False,  # numbers below
         }, plot_bgcolor='rgba(0,0,0,0)', font_size=10, title_x=0.5)
-        plt.show()
+        fig.show()
 
     def plot_class_change(self):
         def accuracy_score_for_not_na_values(a, b):
