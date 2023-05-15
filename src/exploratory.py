@@ -3,7 +3,6 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -24,6 +23,7 @@ class LTVexploratory:
         self.data_ancor = data_ancor
         self.data_events = data_events
         self._period = initial_period
+        # TODO - define ltv_max_horizon based on data
         self._ltv_horizon = ltv_horizon
         self._prep_df()
         self._prep_LTV_periods()
@@ -60,7 +60,10 @@ class LTVexploratory:
 
     def _prep_LTV_periods(self) -> None:
         # calculate ltv by days for each uuid
-        periods = np.append([1,3,5], np.arange(7, 7*30+7, 7))
+        periods = np.append([1,3,5, self._period], np.arange(7, self._ltv_horizon*2+7, 7))
+        if np.any(periods == self._ltv_horizon) == False:
+            periods = np.append(periods, self._ltv_horizon)
+        periods = np.sort(periods)    
         for period in periods:
             self._df[period] = self._df['purchase_value'] *(self._df['days_between_purchase_and_reg'] <= period)
             # if uuid doesn't have data for calculating ltv for this period (for example if our user joined only 1 day ago, he doesn't have enough data in order to calculate ltv for 7 days), I want to see None in this cell, because it will be fair
@@ -177,9 +180,15 @@ class LTVexploratory:
                     ax=ax)
         plt.title('R2 between normalised LTV for different days')
 
-    def plot_sankey(self):
-        ind = ~self._payer_types[self._ltv_horizon].isna()
-        pivot_count_table = self._payer_types.loc[ind, [self._period, self._ltv_horizon]].astype(str).reset_index().pivot_table(index=self._period, columns=self._ltv_horizon,
+    def plot_sankey(self, sankey_initial_period=None, sankey_ltv_horizon=None):
+        if sankey_initial_period is None:
+            sankey_initial_period = self._period
+
+        if sankey_ltv_horizon is None:
+            sankey_ltv_horizon = self._ltv_horizon
+        
+        ind = ~self._payer_types[sankey_ltv_horizon].isna()
+        pivot_count_table = self._payer_types.loc[ind, [sankey_initial_period, sankey_ltv_horizon]].astype(str).reset_index().pivot_table(index=sankey_initial_period, columns=sankey_ltv_horizon,
         values='UUID', aggfunc='count').fillna(0)
         pivot_count_table = pivot_count_table/pivot_count_table.sum().sum()
         source = sum([[x]*len(pivot_count_table.columns) for x in pivot_count_table.index.to_list()], [])
@@ -213,7 +222,7 @@ class LTVexploratory:
             color =  [dict_translate[x]['color_link'] for x in target]
         )
         )])
-        for x_coordinate, column_name in enumerate([f"{self._period}-day Revenue", f"{self._ltv_horizon}-day Revenue"]):
+        for x_coordinate, column_name in enumerate([f"{sankey_initial_period}-day Revenue", f"{sankey_ltv_horizon}-day Revenue"]):
             fig.add_annotation(
                     x=x_coordinate,
                     y=1.1,
