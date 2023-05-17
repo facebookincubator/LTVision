@@ -2,7 +2,7 @@
 This is my commit, this is the second commit.
 
 # Ruchi Agarwal
-Thanks Luke!!
+This is my commit on 17th May
 # Akchat Jha
 
 # Sharad Jaiswal
