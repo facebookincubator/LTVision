@@ -38,11 +38,10 @@ class LTVexploratory:
         uuid_stat['table'] = ['ancor only', 'event only', 'ancor & event']
         uuid_stat['number_uuid'] = [len(ancor_uuid - event_uuid), len(event_uuid - ancor_uuid), len(event_uuid & ancor_uuid)]
         uuid_stat['share_uuid'] = uuid_stat['number_uuid'].map(lambda x: f"{x/uuid_stat['number_uuid'].sum():.2%}")
-        display(uuid_stat)
 
-        # Join two tables, I will analyse only data in event table, because we can't do anything with users who don't have purchase histiry
+        display(uuid_stat.rename(columns={"table": "Source table", "number_uuid": "Number of UUID", "share_uuid" : "Shared UUID between tables"}))
+
         data_upload_date = self.data_ancor['time_of_the_event'].max()
-
         df = self.data_ancor.merge(self.data_events, on='UUID', how='inner', suffixes=('_ancor', '_event'))
         df['max_days_for_ltv'] = (data_upload_date - df['time_of_the_event_ancor']).dt.days + 1
         df['year-month'] = df['time_of_the_event_event'].dt.year.astype(str) + '-' + ("0" + df['time_of_the_event_event'].dt.month.astype(str)).str[-2:]
@@ -51,18 +50,21 @@ class LTVexploratory:
         df['time_of_first_purchase'] = pd.to_datetime(df['UUID'].map(df.groupby('UUID')['time_of_the_event_event'].min()))
         df['days_after_first_purch'] = (df['time_of_the_event_event'] - df['time_of_first_purchase']).dt.days
 
-
-        uuid_for_deletion = df.loc[df['days_between_purchase_and_reg'] < 0, 'UUID'].unique()
-        print(f'We are going to delete {len(uuid_for_deletion)/df["UUID"].nunique():.2%} UUID from df table because of negative value between first purchase date and registration')
         # Delete uuid-outliers
+        uuid_for_deletion = df.loc[df['days_between_purchase_and_reg'] < 0, 'UUID'].unique()
+        print(f'{len(uuid_for_deletion)} ({len(uuid_for_deletion)/df["UUID"].nunique():.2%}) UUID with a first purchase date that predated registration have been removed from the analysis dataset.')
         df = df[~df['UUID'].isin(uuid_for_deletion)].reset_index(drop=True)
         self._df = df
 
     def _prep_LTV_periods(self) -> None:
         # calculate ltv by days for each uuid
-        periods = np.append([1,3,5, self._period], np.arange(7, self._ltv_horizon*2+7, 7))
+        periods = np.append([1,3,5], np.arange(7, self._ltv_horizon*2+7, 7))
+        # If the two user-defined values are not in the period list, add them
+        if np.any(periods == self._period) == False:
+            periods = np.append(periods, self._period)
         if np.any(periods == self._ltv_horizon) == False:
             periods = np.append(periods, self._ltv_horizon)
+
         periods = np.sort(periods)    
         for period in periods:
             self._df[period] = self._df['purchase_value'] *(self._df['days_between_purchase_and_reg'] <= period)
