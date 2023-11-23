@@ -277,6 +277,64 @@ class LTVexploratory:
             title=f"Distribution of value (Y, %) by number of purchases of each user until {days_limit} days after registration (X)",
         )
 
+
+    def plot_revenue_pareto(
+        self, days_limit: int, granularity: int=1000
+    ):
+        """
+        Plots the - cumulative - share of revenue (Y) versus the share of users (X), with users ordered by revenue in descending order
+        This plots how concentrated the revenue is. Base of users is only of spending users (so users who never spent anything are ignored)
+        )
+        Input
+            days_limit: number of days of the event since registration.
+            granularity: number of steps in the plot
+        """
+        # Select only users that are at least [days_limit] days old
+        end_events_date = self.joined_df[self.event_time_col].max()
+        data = self.joined_df[
+            (end_events_date - self.joined_df[self.registration_time_col]).dt.days
+            >= days_limit
+        ].copy()
+
+        # Remove users who never had a purchase and ensure all users have the same opportunity window
+        data = data[
+            (data[self.event_time_col] - data[self.registration_time_col]).dt.days
+            <= days_limit
+        ]
+
+        # Count how many purchase users had (defined by value > 0) and then how many users are in each place
+        data = data[data[self.value_col] > 0]
+        data = (
+            data.groupby(self.uuid_col)[self.value_col].sum()
+            .reset_index()
+            .sort_values(self.value_col, ascending=False)
+        )
+
+        # Calculate total revenue and group users together based on the granilarity
+        total_revenue = data[self.value_col].sum()
+        total_users = data.shape[0]
+        data['cshare_users'] = [(i+1)/total_users for i in range(total_users)]
+        data['cshare_revenue'] = data[self.value_col].cumsum() / total_revenue
+        data['group'] = data['cshare_users'].apply(lambda x: np.ceil(x*granularity))
+        data = (
+            data
+            .groupby("group")[["cshare_users", "cshare_revenue"]]
+            .max()
+            .reset_index()
+        )
+
+        graph.line_plot(
+            data,
+            x_axis="cshare_users",
+            y_axis="cshare_revenue",
+            xlabel="Share of paying customers",
+            ylabel="Share of revenue",
+            x_format="%",
+            y_format="%",
+            title=f"Share of all revenue of the first {days_limit} days after customer registration (Y) versus share of paying customers",
+        )
+
+
     def plot_n(self):
         fig, ax = plt.subplots(2, 1, figsize=(10, 10))
         self.data_ancor["ancor_event_name"].value_counts().plot.barh(ax=ax[0])
