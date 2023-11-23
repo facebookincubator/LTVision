@@ -209,6 +209,7 @@ class Graph:
         palette=None,
         xlabel="",
         ylabel="",
+        x_format=None,
         y_format=None,
         title: str = "",
         data_filter: str = None,
@@ -258,6 +259,12 @@ class Graph:
                 plt.gca().yaxis.set_major_formatter(
                     FuncFormatter(lambda x, pos: y_format)
                 )
+            if x_format == "%":
+                plt.gca().xaxis.set_major_formatter(PercentFormatter(1))
+            elif x_format is not None:
+                plt.gca().xaxis.set_major_formatter(
+                    FuncFormatter(lambda x, pos: x_format)
+                )
 
         return grid
 
@@ -275,6 +282,7 @@ class Graph:
         palette=None,
         xlabel="",
         ylabel="",
+        x_format=None,
         y_format=None,
         title: str = "",
         data_filter: str = None,
@@ -321,7 +329,13 @@ class Graph:
                 plt.gca().yaxis.set_major_formatter(PercentFormatter(1))
             elif y_format is not None:
                 plt.gca().yaxis.set_major_formatter(
-                    FuncFormatter(lambda x, pos: y_format)
+                    FuncFormatter(lambda x, pos: x_format)
+                )
+            if x_format == "%":
+                plt.gca().xaxis.set_major_formatter(PercentFormatter(1))
+            elif x_format is not None:
+                plt.gca().xaxis.set_major_formatter(
+                    FuncFormatter(lambda x, pos: x_format)
                 )
 
         return grid
@@ -340,6 +354,7 @@ class Graph:
         palette=None,
         xlabel="",
         ylabel="",
+        x_format=None,
         y_format=None,
         title: str = "",
         data_filter: str = None,
@@ -368,6 +383,7 @@ class Graph:
                 palette,
                 xlabel,
                 ylabel,
+                x_format,
                 y_format,
                 title,
                 data_filter,
@@ -387,6 +403,7 @@ class Graph:
                 palette,
                 xlabel,
                 ylabel,
+                x_format,
                 y_format,
                 title,
                 data_filter,
