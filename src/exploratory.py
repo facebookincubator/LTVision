@@ -21,7 +21,7 @@ class LTVexploratory:
         self,
         data_ancor: pd.DataFrame,
         data_events: pd.DataFrame,
-        uuid_col: str = "UUID",
+        uuid_col: str = 'UUID',
         registration_time_col: str = "timestamp_registration",
         event_time_col: str = "timestamp_event",
         event_name_col: str = "event_name",
@@ -43,11 +43,12 @@ class LTVexploratory:
         self._prep_df()
         self._prep_LTV_periods()
         self._prep_payer_types()
+        
 
 
     def _prep_df(self) -> None:
-        ancor_uuid = set(self.data_ancor['UUID'])
-        event_uuid = set(self.data_events['UUID'])
+        ancor_uuid = set(self.data_ancor[self.uuid_col])
+        event_uuid = set(self.data_events[self.uuid_col])
         uuid_stat = pd.DataFrame(columns=['table', 'number_uuid'])
         uuid_stat['table'] = ['ancor only', 'event only', 'ancor & event']
         uuid_stat['number_uuid'] = [len(ancor_uuid - event_uuid), len(event_uuid - ancor_uuid), len(event_uuid & ancor_uuid)]
@@ -56,21 +57,22 @@ class LTVexploratory:
 
 
         # Join two tables, I will analyse only data in event table, because we can't do anything with users who don't have purchase histiry
-        data_upload_date = self.data_ancor['time_of_the_event'].max()
+        
 
-        df = self.data_ancor.merge(self.data_events, on='UUID', how='inner', suffixes=('_ancor', '_event'))
-        df['max_days_for_ltv'] = (data_upload_date - df['time_of_the_event_ancor']).dt.days + 1
-        df['year-month'] = df['time_of_the_event_event'].dt.year.astype(str) + '-' + ("0" + df['time_of_the_event_event'].dt.month.astype(str)).str[-2:]
-        df['days_between_purchase_and_reg'] = (pd.to_datetime(df['time_of_the_event_event'].dt.date) -
-                                            pd.to_datetime(df['time_of_the_event_ancor'].dt.date)).dt.days
-        df['time_of_first_purchase'] = pd.to_datetime(df['UUID'].map(df.groupby('UUID')['time_of_the_event_event'].min()))
-        df['days_after_first_purch'] = (df['time_of_the_event_event'] - df['time_of_first_purchase']).dt.days
+        df = self.data_ancor.merge(self.data_events, on=self.uuid_col, how='inner', suffixes=('_registration', '_event'))
+        data_upload_date = df[self.event_time_col].max()
+        df['max_days_for_ltv'] = (data_upload_date - df[self.registration_time_col]).dt.days + 1
+        df['year-month'] = df[self.event_time_col].dt.year.astype(str) + '-' + ("0" + df[self.event_time_col].dt.month.astype(str)).str[-2:]
+        df['days_between_purchase_and_reg'] = (pd.to_datetime(df[self.event_time_col].dt.date) -
+                                            pd.to_datetime(df[self.registration_time_col].dt.date)).dt.days
+        df['time_of_first_purchase'] = pd.to_datetime(df[self.uuid_col].map(df.groupby(self.uuid_col)[self.event_time_col].min()))
+        df['days_after_first_purch'] = (df[self.event_time_col] - df['time_of_first_purchase']).dt.days
 
 
-        uuid_for_deletion = df.loc[df['days_between_purchase_and_reg'] < 0, 'UUID'].unique()
-        print(f'We are going to delete {len(uuid_for_deletion)/df["UUID"].nunique():.2%} UUID from df table because of negative value between first purchase date and registration')
+        uuid_for_deletion = df.loc[df['days_between_purchase_and_reg'] < 0, self.uuid_col].unique()
+        print(f'We are going to delete {len(uuid_for_deletion)/df[self.uuid_col].nunique():.2%} UUID from df table because of negative value between first purchase date and registration')
         # Delete uuid-outliers
-        df = df[~df['UUID'].isin(uuid_for_deletion)].reset_index(drop=True)
+        df = df[~df[self.uuid_col].isin(uuid_for_deletion)].reset_index(drop=True)
         self._df = df
 
 
@@ -113,9 +115,9 @@ class LTVexploratory:
             self._df[period] = self._df['purchase_value'] *(self._df['days_between_purchase_and_reg'] <= period)
             # if uuid doesn't have data for calculating ltv for this period (for example if our user joined only 1 day ago, he doesn't have enough data in order to calculate ltv for 7 days), I want to see None in this cell, because it will be fair
             self._df.loc[self._df['max_days_for_ltv'] < period, period] = None
-        ltv_periods = self._df.groupby(['UUID'])[periods].sum()
+        ltv_periods = self._df.groupby([self.uuid_col])[periods].sum()
         # function sum converts None to 0, so I use proxy function which set None where is necessary
-        ltv_periods[self._df.groupby(['UUID'])[periods].max().isna()] = None
+        ltv_periods[self._df.groupby([self.uuid_col])[periods].max().isna()] = None
         self._ltv_periods = ltv_periods
 
 
@@ -168,17 +170,17 @@ class LTVexploratory:
         """
 
         # Get uuids from each input data
-        ancor_uuids = pd.DataFrame({"uuid": self.data_ancor[self.uuid_col].unique()})
+        ancor_uuids = pd.DataFrame({self.uuid_col: self.data_ancor[self.uuid_col].unique()})
         ancor_uuids["ancor"] = "Present in Ancor"
-        events_uuids = pd.DataFrame({"uuid": self.data_events[self.uuid_col].unique()})
+        events_uuids = pd.DataFrame({self.uuid_col: self.data_events[self.uuid_col].unique()})
         events_uuids["events"] = "Present in Events"
 
         # Calculate how many users are in each category
-        cross_uuid = pd.merge(ancor_uuids, events_uuids, on="uuid", how="outer")
+        cross_uuid = pd.merge(ancor_uuids, events_uuids, on=self.uuid_col, how="outer")
         cross_uuid["ancor"] = cross_uuid["ancor"].fillna("Not in Ancor")
         cross_uuid["events"] = cross_uuid["events"].fillna("Not in Events")
         cross_uuid = (
-            cross_uuid.groupby(["ancor", "events"])["uuid"].count().reset_index()
+            cross_uuid.groupby(["ancor", "events"])[self.uuid_col].count().reset_index()
         )
 
         # Create a dataframe containing all combinations for the visualization
@@ -209,7 +211,7 @@ class LTVexploratory:
         graph.bar_plot(
             complete_data,
             x_axis="description",
-            y_axis="uuid",
+            y_axis=self.uuid_col,
             xlabel="",
             ylabel="Number of users",
         )
@@ -285,7 +287,7 @@ class LTVexploratory:
 
     def plot_first_purchase(self):
         fig, ax = plt.subplots(figsize=(20, 5))
-        days_before_first_purchase = self._df.groupby("UUID")[
+        days_before_first_purchase = self._df.groupby(self.uuid_col)[
             "days_between_purchase_and_reg"
         ].min()
         days_before_first_purchase.hist(ax=ax, bins=50)
@@ -310,7 +312,7 @@ class LTVexploratory:
         fig, ax = plt.subplots(figsize=(20, 5))
         days_after_first_purchase = (
             self._df[self._df["days_after_first_purch"] > 0]
-            .groupby("UUID")["days_after_first_purch"]
+            .groupby(self.uuid_col)["days_after_first_purch"]
             .min()
         )
         days_after_first_purchase.hist(ax=ax, bins=50)
@@ -331,7 +333,7 @@ class LTVexploratory:
         )
         stat.loc[
             "users without second purchase"
-        ] = f"{(self._df[self.uuid_col].nunique() - self._df.loc[self._df['days_after_first_purch'] > 0, 'UUID'].nunique())/self._df[self.uuid_col].nunique():.2%}"
+        ] = f"{(self._df[self.uuid_col].nunique() - self._df.loc[self._df['days_after_first_purch'] > 0, self.uuid_col].nunique())/self._df[self.uuid_col].nunique():.2%}"
         display(stat)
         print(
             f"""You have {(self._df['purchase_value'] == 0).sum()/self._df.shape[0]:.2%} purchases with zero value"""
@@ -341,7 +343,7 @@ class LTVexploratory:
         # Let's have a look at distribution of uuid life time
         fig, ax = plt.subplots(figsize=(20, 5))
         n, bins, patches = ax.hist(
-            self._df.groupby("UUID")["max_days_for_ltv"].min(), bins=30
+            self._df.groupby(self.uuid_col)["max_days_for_ltv"].min(), bins=30
         )
         ax.set_title("Life time distribution of users who have purchases history")
         plt.show()
@@ -395,7 +397,7 @@ class LTVexploratory:
             .pivot_table(
                 index=self._period,
                 columns=self._period_for_ltv,
-                values="UUID",
+                values=self.uuid_col,
                 aggfunc="count",
             )
             .fillna(0)
@@ -540,7 +542,7 @@ class LTVexploratory:
     def plot_drop_off(self):
         # Let's have a look at distribution of number uuid which can be in the train set depending on life time which we will chose for our model
         fig, ax = plt.subplots(figsize=(30, 5))
-        _data = self._df.groupby("UUID")["max_days_for_ltv"].min()
+        _data = self._df.groupby(self.uuid_col)["max_days_for_ltv"].min()
         ax.hist(_data, bins=1000, cumulative=-1)
         ax.set_title(
             "Number of users which we can use in train set depend on horizon which we choose"
@@ -552,7 +554,7 @@ class LTVexploratory:
         # We have users with different life times, it means that building LTV distribution histogram for all users together will be not good.
         # Because in this case we will compare ltv for a user who have couple years purchase history with a user who joined a couple days ago. It doesn't make sense.
         # So the main idea is to see distribution for users groupped by almost the same number of active days on the platform
-        active_user_stats = self._df.groupby("UUID").agg(
+        active_user_stats = self._df.groupby(self.uuid_col).agg(
             {"max_days_for_ltv": "min", "purchase_value": "sum"}
         )
         lifeteime_quantiles = active_user_stats["max_days_for_ltv"].quantile(
@@ -633,7 +635,7 @@ class LTVexploratory:
 
     def plot_freq(self):
         # Let's have a look on the first component of LTV: frequency
-        active_user_stats = self._df.groupby("UUID").agg(
+        active_user_stats = self._df.groupby(self.uuid_col).agg(
             {"max_days_for_ltv": "min", "purchase_value": "count"}
         )
         active_user_stats["purchase_value"] = (
@@ -720,7 +722,7 @@ class LTVexploratory:
         plt.show()
 
     def plot_apv(self):
-        active_user_stats = self._df.groupby("UUID").agg(
+        active_user_stats = self._df.groupby(self.uuid_col).agg(
             {"max_days_for_ltv": "min", "purchase_value": "median"}
         )
         lifeteime_quantiles = active_user_stats["max_days_for_ltv"].quantile(
@@ -807,7 +809,7 @@ class LTVexploratory:
             """Interpretation: Correlation value can be [-1,1]. If you have correlation closer to 0, it means that you can use models where these two variables describes different models."""
         )
         _, ax = plt.subplots(figsize=(30, 10), dpi=50)
-        stat = self._df.groupby("UUID")[["purchase_value", "max_days_for_ltv"]].agg(
+        stat = self._df.groupby(self.uuid_col)[["purchase_value", "max_days_for_ltv"]].agg(
             {"purchase_value": ["mean", "count"], "max_days_for_ltv": "min"}
         )
         stat[("purchase_value", "count")] = (
