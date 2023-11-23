@@ -105,6 +105,9 @@ class Graph:
         }
 
     def set_baseline_value(self, new_baseline: float) -> None:
+        """
+        Defines new baseline to be shown in the plots, when a baseline is requested
+        """
         self.baseline = new_baseline
 
     def _add_baseline(
