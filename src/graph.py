@@ -1,3 +1,10 @@
+# Copyright (c) Meta Platforms, Inc. and affiliates.
+
+# This source code is licensed under the BSD-style license found in the
+# LICENSE file in the root directory of this source tree.
+
+"""Module providing a class for rendering graphs"""
+
 import pandas as pd
 import numpy as np
 import seaborn as sns
@@ -5,17 +12,14 @@ from typing import List, Dict
 import matplotlib.pyplot as plt
 from matplotlib.ticker import PercentFormatter, FuncFormatter
 from pandas.api.types import is_bool
-from typing import List, Dict
-import numpy as np
-import seaborn as sns
-import pandas as pd
-import matplotlib.pyplot as plt
-from matplotlib.ticker import PercentFormatter, FuncFormatter
-
 # TODO: remove hard-coded constants inside the code
 
 
-class Graphs:
+class Graph:
+    """
+    This class generates plots (mainly bar and line plots) and configure their settings to achieve a better aesthetic.
+    With this class, it is easier to have all plots in the same standard and similar appereance 
+    """
     def __init__(
         self,
         zero_indexed: bool = True,
@@ -117,7 +121,7 @@ class Graphs:
         )
         min_x = np.min(data[x_axis])
         text_x_position = (
-            0 if type(min_x) == str else min_x * self.baseline_text_x_nudge
+            0 if isinstance(min_x, str) else min_x * self.baseline_text_x_nudge
         )
         grid.ax.text(
             text_x_position,
