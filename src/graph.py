@@ -5,10 +5,10 @@
 
 """Module providing a class for rendering graphs"""
 
+from typing import List, Dict
 import pandas as pd
 import numpy as np
 import seaborn as sns
-from typing import List, Dict
 import matplotlib.pyplot as plt
 from matplotlib.ticker import PercentFormatter, FuncFormatter
 # TODO: remove hard-coded constants inside the code
