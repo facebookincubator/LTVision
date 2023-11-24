@@ -41,8 +41,8 @@ class LTVexploratory:
         self.segment_feature_cols = segment_feature_cols
         # run auxiliar methods
         self._prep_df()
-        self._prep_LTV_periods()
-        self._prep_payer_types()
+        # self._prep_LTV_periods()
+        # self._prep_payer_types()
         
 
 
@@ -332,6 +332,18 @@ class LTVexploratory:
             x_format="%",
             y_format="%",
             title=f"Share of all revenue of the first {days_limit} days after customer registration (Y) versus share of paying customers",
+        )
+
+    def plot_early_late_revenue_correlation(self, days_limit: int, breaks: List[int]=None) -> None:
+        """
+        Plots the correlation between early and late cumulative revenue
+        Inputs:
+            days_limit: number of days of the event since registration.
+            breaks: which breaks to use from 0 until days_limit
+        """
+        (
+            self.joined_df
+            .group
         )
 
 
