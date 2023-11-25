@@ -27,7 +27,7 @@ class LTVexploratory:
         event_time_col: str = "timestamp_event",
         event_name_col: str = "event_name",
         value_col: str = "revenue",
-        segment_feature_cols: List[str] = [],
+        segment_feature_cols: List[str] = None,
     ):
         self.data_ancor = data_ancor
         self.data_events = data_events
@@ -39,7 +39,7 @@ class LTVexploratory:
         self.event_time_col = event_time_col
         self.event_name_col = event_name_col
         self.value_col = value_col
-        self.segment_feature_cols = segment_feature_cols
+        self.segment_feature_cols = [] if segment_feature_cols is None else segment_feature_cols
         # run auxiliar methods
         self._prep_df()
         # self._prep_LTV_periods()
