@@ -44,7 +44,7 @@ class LTVexploratory:
         self._prep_df()
         # self._prep_LTV_periods()
         # self._prep_payer_types()
-        
+
 
 
     def _prep_df(self) -> None:
@@ -58,7 +58,7 @@ class LTVexploratory:
 
 
         # Join two tables, I will analyse only data in event table, because we can't do anything with users who don't have purchase histiry
-        
+
 
         df = self.data_ancor.merge(self.data_events, on=self.uuid_col, how='inner', suffixes=('_registration', '_event'))
         data_upload_date = df[self.event_time_col].max()
