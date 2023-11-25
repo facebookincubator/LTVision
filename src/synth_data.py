@@ -293,52 +293,54 @@ class LTVSyntheticData:
                    + pd.to_timedelta(self.n_days, unit='D'))
 
         if self.is_subscr:
-            purchases = purchases.append(self._get_payments_subscr(
+            high_payers_payments = self._get_payments_subscr(
                 active_uuid=self._high_payers,
                 registration_table=self._ancor_table,
                 days_for_each_subscr_option=self.days_for_each_subscr_option,
                 value_for_each_subscr_option=self.payment_for_each_subscr_option,
                 p_0=0.1,
-                max_day=max_day))
-            purchases = purchases.append(self._get_payments_subscr(
+                max_day=max_day)
+            mid_payers_payments = self._get_payments_subscr(
                 active_uuid=self._mid_payers,
                 registration_table=self._ancor_table,
                 days_for_each_subscr_option=self.days_for_each_subscr_option,
                 value_for_each_subscr_option=self.payment_for_each_subscr_option,
                 p_0=0.3,
-                max_day=max_day))
-            purchases = purchases.append(self._get_payments_subscr(
+                max_day=max_day)
+            low_payers_payments = self._get_payments_subscr(
                 active_uuid=self._low_payers,
                 registration_table=self._ancor_table,
                 days_for_each_subscr_option=self.days_for_each_subscr_option,
                 value_for_each_subscr_option=self.payment_for_each_subscr_option,
                 p_0=0.6,
-                max_day=max_day))
+                max_day=max_day)
+            purchases = pd.concat([purchases, high_payers_payments, mid_payers_payments, low_payers_payments], ignore_index=True)
         else:
-            purchases = purchases.append(self._get_purchases(
+            mid_payers_payments = self._get_purchases(
                 mean_for_day_number=self.mean_for_day_number,
                 std_for_day_number=self.std_for_day_number,
                 mean_for_value=self.mean_for_value,
                 std_for_value=self.std_for_value,
                 active_uuid=self._mid_payers,
                 max_day=max_day,
-                registration_table=self._ancor_table))
-            purchases = purchases.append(self._get_purchases(
+                registration_table=self._ancor_table)
+            high_payers_payments = self._get_purchases(
                 mean_for_day_number=self.mean_for_day_number*2,
                 std_for_day_number=self.std_for_day_number*2**0.5,
                 mean_for_value=self.mean_for_value*2,
                 std_for_value=self.std_for_value*2**0.5,
                 active_uuid=self._high_payers,
                 max_day=max_day,
-                registration_table=self._ancor_table))
-            purchases = purchases.append(self._get_purchases(
+                registration_table=self._ancor_table)
+            low_payers_payments = self._get_purchases(
                 mean_for_day_number=self.mean_for_day_number*0.5,
                 std_for_day_number=self.std_for_day_number*0.5**0.5,
                 mean_for_value=self.mean_for_value*0.5,
                 std_for_value=self.std_for_value*0.5**0.5,
                 active_uuid=self._low_payers,
                 max_day=max_day,
-                registration_table=self._ancor_table))
+                registration_table=self._ancor_table)
+            purchases = pd.concat([purchases, high_payers_payments, mid_payers_payments, low_payers_payments], ignore_index=True)
         purchases['event_name'] = 'purchase'
 
         purchases['registration_day'] = purchases['UUID'].map(
