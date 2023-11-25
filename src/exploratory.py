@@ -3,13 +3,12 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-
+from typing import List
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
 import seaborn as sns
-from typing import List
 
 sns.set_style("whitegrid")
 
