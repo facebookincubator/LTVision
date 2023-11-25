@@ -6,6 +6,7 @@
 """Module providing a class for initial analysis"""
 
 from typing import List
+from IPython.display import display
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
