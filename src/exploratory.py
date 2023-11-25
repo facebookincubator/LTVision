@@ -11,9 +11,9 @@ import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
 import seaborn as sns
+from src.graph import Graph
 
 sns.set_style("whitegrid")
-
 
 class LTVexploratory:
     """This class helps to perform som initial analysis"""
@@ -33,6 +33,7 @@ class LTVexploratory:
         self.data_events = data_events
         self._period = 7
         self._period_for_ltv = 7 * 10
+        self.graph = Graph()
         # store information about the columns of the dataframes
         self.uuid_col = uuid_col
         self.registration_time_col = registration_time_col
@@ -204,7 +205,7 @@ class LTVexploratory:
             lambda row: row["ancor"] + " & " + row["events"], axis=1
         )
 
-        graph.bar_plot(
+        self.graph.bar_plot(
             complete_data,
             x_axis="description",
             y_axis=self.uuid_col,
@@ -254,7 +255,7 @@ class LTVexploratory:
         users_truncation = data["count"].cumsum() <= truncate_share
         value_truncation = data["sum"].cumsum() <= truncate_share
         # plot distribution by users and by revenue
-        graph.bar_plot(
+        self.graph.bar_plot(
             data[users_truncation],
             x_axis="purchases",
             y_axis="count",
@@ -263,7 +264,7 @@ class LTVexploratory:
             y_format="%",
             title=f"Distribution of paying users (Y, %) by number of purchases of each user until {days_limit} days after registration  (X)",
         )
-        graph.bar_plot(
+        self.graph.bar_plot(
             data[value_truncation],
             x_axis="purchases",
             y_axis="sum",
@@ -319,7 +320,7 @@ class LTVexploratory:
             .reset_index()
         )
 
-        graph.line_plot(
+        self.graph.line_plot(
             data,
             x_axis="cshare_users",
             y_axis="cshare_revenue",
