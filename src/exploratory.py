@@ -3,16 +3,19 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
+"""Module providing a class for initial analysis"""
 
+from typing import List
+from IPython.display import display
+from sklearn.metrics import accuracy_score, r2_score
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
 import seaborn as sns
-from typing import List
+from src.graph import Graph
 
 sns.set_style("whitegrid")
-
 
 class LTVexploratory:
     """This class helps to perform som initial analysis"""
@@ -26,24 +29,25 @@ class LTVexploratory:
         event_time_col: str = "timestamp_event",
         event_name_col: str = "event_name",
         value_col: str = "revenue",
-        segment_feature_cols: List[str] = [],
+        segment_feature_cols: List[str] = None,
     ):
         self.data_ancor = data_ancor
         self.data_events = data_events
         self._period = 7
         self._period_for_ltv = 7 * 10
+        self.graph = Graph()
         # store information about the columns of the dataframes
         self.uuid_col = uuid_col
         self.registration_time_col = registration_time_col
         self.event_time_col = event_time_col
         self.event_name_col = event_name_col
         self.value_col = value_col
-        self.segment_feature_cols = segment_feature_cols
+        self.segment_feature_cols = [] if segment_feature_cols is None else segment_feature_cols
         # run auxiliar methods
         self._prep_df()
         # self._prep_LTV_periods()
         # self._prep_payer_types()
-        
+
 
 
     def _prep_df(self) -> None:
@@ -57,7 +61,7 @@ class LTVexploratory:
 
 
         # Join two tables, I will analyse only data in event table, because we can't do anything with users who don't have purchase histiry
-        
+
 
         df = self.data_ancor.merge(self.data_events, on=self.uuid_col, how='inner', suffixes=('_registration', '_event'))
         data_upload_date = df[self.event_time_col].max()
@@ -102,11 +106,6 @@ class LTVexploratory:
             ).days,
             axis=1,
         )
-
-        n_uuid_for_deletion = self.joined_df[
-            self.joined_df[self.event_time_col].isnull()
-        ][self.uuid_col].nunique()
-        total_uuids = self.data_ancor.shape[0]
 
     def _prep_LTV_periods(self) -> None:
         # calculate ltv by days for each uuid
@@ -208,7 +207,7 @@ class LTVexploratory:
             lambda row: row["ancor"] + " & " + row["events"], axis=1
         )
 
-        graph.bar_plot(
+        self.graph.bar_plot(
             complete_data,
             x_axis="description",
             y_axis=self.uuid_col,
@@ -258,7 +257,7 @@ class LTVexploratory:
         users_truncation = data["count"].cumsum() <= truncate_share
         value_truncation = data["sum"].cumsum() <= truncate_share
         # plot distribution by users and by revenue
-        graph.bar_plot(
+        self.graph.bar_plot(
             data[users_truncation],
             x_axis="purchases",
             y_axis="count",
@@ -267,7 +266,7 @@ class LTVexploratory:
             y_format="%",
             title=f"Distribution of paying users (Y, %) by number of purchases of each user until {days_limit} days after registration  (X)",
         )
-        graph.bar_plot(
+        self.graph.bar_plot(
             data[value_truncation],
             x_axis="purchases",
             y_axis="sum",
@@ -323,7 +322,7 @@ class LTVexploratory:
             .reset_index()
         )
 
-        graph.line_plot(
+        self.graph.line_plot(
             data,
             x_axis="cshare_users",
             y_axis="cshare_revenue",
@@ -348,7 +347,7 @@ class LTVexploratory:
 
 
     def plot_n(self):
-        fig, ax = plt.subplots(2, 1, figsize=(10, 10))
+        _fig, ax = plt.subplots(2, 1, figsize=(10, 10))
         self.data_ancor["ancor_event_name"].value_counts().plot.barh(ax=ax[0])
         ax[0].set_title("event_name from df_ancore")
         self.data_events["event_name"].value_counts().plot.barh(ax=ax[1])
@@ -356,7 +355,7 @@ class LTVexploratory:
         plt.show()
 
     def plot_first_purchase(self):
-        fig, ax = plt.subplots(figsize=(20, 5))
+        _fig, ax = plt.subplots(figsize=(20, 5))
         days_before_first_purchase = self._df.groupby(self.uuid_col)[
             "days_between_purchase_and_reg"
         ].min()
@@ -379,7 +378,7 @@ class LTVexploratory:
 
     def plot_second_purchase(self):
         # Let's have a look on days before the second purchase
-        fig, ax = plt.subplots(figsize=(20, 5))
+        _fig, ax = plt.subplots(figsize=(20, 5))
         days_after_first_purchase = (
             self._df[self._df["days_after_first_purch"] > 0]
             .groupby(self.uuid_col)["days_after_first_purch"]
@@ -411,8 +410,8 @@ class LTVexploratory:
 
     def plot_uuid(self):
         # Let's have a look at distribution of uuid life time
-        fig, ax = plt.subplots(figsize=(20, 5))
-        n, bins, patches = ax.hist(
+        _fig, ax = plt.subplots(figsize=(20, 5))
+        ax.hist(
             self._df.groupby(self.uuid_col)["max_days_for_ltv"].min(), bins=30
         )
         ax.set_title("Life time distribution of users who have purchases history")
@@ -611,7 +610,7 @@ class LTVexploratory:
 
     def plot_drop_off(self):
         # Let's have a look at distribution of number uuid which can be in the train set depending on life time which we will chose for our model
-        fig, ax = plt.subplots(figsize=(30, 5))
+        _fig, ax = plt.subplots(figsize=(30, 5))
         _data = self._df.groupby(self.uuid_col)["max_days_for_ltv"].min()
         ax.hist(_data, bins=1000, cumulative=-1)
         ax.set_title(
