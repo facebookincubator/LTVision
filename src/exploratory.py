@@ -45,8 +45,8 @@ class LTVexploratory:
         self.segment_feature_cols = [] if segment_feature_cols is None else segment_feature_cols
         # run auxiliar methods
         self._prep_df()
-        # self._prep_LTV_periods()
-        # self._prep_payer_types()
+        self._prep_LTV_periods()
+        self._prep_payer_types()
 
 
 
