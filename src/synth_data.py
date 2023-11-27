@@ -118,7 +118,7 @@ class LTVSyntheticData:
 
         Returns
         ------------------------------------------------------------------------
-        pd.DataFrame(columns=[UUID, time_of_the_event, ancor_event_name]
+        pd.DataFrame(columns=[UUID, timestamp, ancor_event_name]
                      ): table with registration date
         ------------------------------------------------------------------------
         """
@@ -126,11 +126,11 @@ class LTVSyntheticData:
             registration_day = np.random.choice(np.arange(self.n_days),
                                                 size=self.n_users)
             self._ancor_table = pd.DataFrame(
-                {'UUID': self._uuids, 'time_of_the_event': registration_day})
+                {'UUID': self._uuids, 'timestamp': registration_day})
             self._ancor_table['ancor_event_name'] = 'registration'
-            self._ancor_table['time_of_the_event'] = (
+            self._ancor_table['timestamp'] = (
                 pd.to_datetime(self.date_start) + pd.to_timedelta(
-                    self._ancor_table['time_of_the_event'], unit='D'))
+                    self._ancor_table['timestamp'], unit='D'))
         return self._ancor_table
 
     def _define_active_users(self) -> None:
@@ -163,7 +163,7 @@ class LTVSyntheticData:
         ------------------------------------------------------------------------
         active_uuid: list, uuids for which data will be generated
         registration_table: pd.DataFrame, table with registration data, required
-                                          columns=[UUID, time_of_the_event]
+                                          columns=[UUID, timestamp]
         days_for_each_subscr_option: Tuple[int], number days when subscriptions
                                                  will be active
         value_for_each_subscr_option: Tuple[float], price for each subscription
@@ -173,7 +173,7 @@ class LTVSyntheticData:
 
         Returns
         ------------------------------------------------------------------------
-        pd.DataFrame(columns=[UUID, time_of_the_event, purchase_value]
+        pd.DataFrame(columns=[UUID, timestamp, purchase_value]
                      ): table with purchases
         ------------------------------------------------------------------------
         """
@@ -183,11 +183,11 @@ class LTVSyntheticData:
         days = dict(zip(np.arange(len(days_for_each_subscr_option)),
                         days_for_each_subscr_option))
         registration_time = registration_table.set_index('UUID').loc[
-            active_uuid]['time_of_the_event']
+            active_uuid]['timestamp']
         # choose random plan including without plan (-1)
         user_info = ((max_day - registration_time).dt.days + 1).reset_index()
         user_info = user_info.rename(
-            columns={'time_of_the_event': 'num_active_days'})
+            columns={'timestamp': 'num_active_days'})
         user_info['registration_day'] = user_info['UUID'].map(registration_time)
         user_info['plans_order'] = user_info['num_active_days'].map(
             lambda x: np.random.choice(
@@ -208,13 +208,13 @@ class LTVSyntheticData:
         user_info['plans_order_num_day_from_reg'] = \
             user_info.groupby('UUID')['plans_order_num_day_from_reg'].cumsum()
         user_info = user_info[user_info['plans_order'] != -1]
-        user_info['time_of_the_event'] = (
+        user_info['timestamp'] = (
             pd.to_timedelta(user_info['plans_order_num_day_from_reg'], unit='D')
             + user_info['registration_day'])
-        user_info = user_info[user_info['time_of_the_event'] <= max_day]
+        user_info = user_info[user_info['timestamp'] <= max_day]
         user_info = user_info.reset_index(drop=True)
         user_info['purchase_value'] = user_info['plans_order'].map(pay)
-        return user_info[['UUID', 'time_of_the_event', 'purchase_value']]
+        return user_info[['UUID', 'timestamp', 'purchase_value']]
 
     @staticmethod
     def _get_purchases(mean_for_day_number: float,
@@ -235,12 +235,12 @@ class LTVSyntheticData:
         active_uuid: list, uuids for which data will be generated
         max_day: str, maximum date in datasample in format %Y-%M-%d
         registration_table: pd.DataFrame, table with registration data, required
-                                          columns=[UUID, time_of_the_event]
+                                          columns=[UUID, timestamp]
         ------------------------------------------------------------------------
 
         Returns
         ------------------------------------------------------------------------
-        pd.DataFrame(columns=[UUID, time_of_the_event, purchase_value]
+        pd.DataFrame(columns=[UUID, timestamp, purchase_value]
                      ): table with purchases
         ------------------------------------------------------------------------
         """
@@ -249,18 +249,18 @@ class LTVSyntheticData:
             )**0.5))
         sigma = np.log((std_for_day_number**2)/(mean_for_day_number**2)+ 1)**0.5
         registration_time = registration_table.set_index('UUID').loc[
-            active_uuid]['time_of_the_event']
+            active_uuid]['timestamp']
 
         user_info = ((max_day - registration_time).dt.days + 1).reset_index()
         user_info = user_info.rename(
-            columns={'time_of_the_event': 'num_active_days'})
+            columns={'timestamp': 'num_active_days'})
         user_info['registration_day'] = user_info['UUID'].map(registration_time)
         user_info['day'] = 1
         user_info = user_info.loc[user_info.index.repeat(
             user_info['num_active_days']), :]
         user_info = user_info.reset_index(drop=True)
         user_info['day'] = user_info.groupby('UUID')['day'].cumsum()
-        user_info['time_of_the_event'] = (
+        user_info['timestamp'] = (
             pd.to_timedelta(user_info['day'], unit='D')
             + user_info['registration_day'] )
         user_info['num_purchases'] = np.int_(np.random.lognormal(
@@ -271,14 +271,14 @@ class LTVSyntheticData:
         user_info = user_info.reset_index(drop=True)
         user_info['purchase_value'] = np.maximum(1, np.random.normal(
             mean_for_value, std_for_value, size=user_info.shape[0]))
-        return user_info[['UUID', 'time_of_the_event', 'purchase_value']]
+        return user_info[['UUID', 'timestamp', 'purchase_value']]
 
     def get_purchases(self) -> pd.DataFrame:
         """Create table with purchases according to registration table
 
         Returns
         ------------------------------------------------------------------------
-         pd.DataFrame(columns=[UUID, time_of_the_event, event_name,
+         pd.DataFrame(columns=[UUID, timestamp, event_name,
                                purchase_value]): table with purchases
         ------------------------------------------------------------------------
         """
@@ -287,7 +287,7 @@ class LTVSyntheticData:
             raise Exception('Run get_ancor_table method first')
         self._define_active_users()
         purchases = pd.DataFrame(columns=['UUID',
-                                          'time_of_the_event',
+                                          'timestamp',
                                           'purchase_value'])
         max_day = (pd.to_datetime(self.date_start)
                    + pd.to_timedelta(self.n_days, unit='D'))
@@ -344,8 +344,8 @@ class LTVSyntheticData:
         purchases['event_name'] = 'purchase'
 
         purchases['registration_day'] = purchases['UUID'].map(
-            self._ancor_table.set_index('UUID')['time_of_the_event'])
-        purchases = purchases[purchases['time_of_the_event'] >=
+            self._ancor_table.set_index('UUID')['timestamp'])
+        purchases = purchases[purchases['timestamp'] >=
                               purchases['registration_day']]
         purchases = purchases.drop(columns=['registration_day'])
 
@@ -360,8 +360,8 @@ class LTVSyntheticData:
         Returns
         ------------------------------------------------------------------------
         (
-            pd.DataFrame(columns=[UUID, ancor_event_name, time_of_the_event]),
-            pd.DataFrame(columns=[UUID, event_name, time_of_the_event,
+            pd.DataFrame(columns=[UUID, ancor_event_name, timestamp]),
+            pd.DataFrame(columns=[UUID, event_name, timestamp,
                                   purchase_value])
         ): table with registration date and table with purchases
         ------------------------------------------------------------------------
