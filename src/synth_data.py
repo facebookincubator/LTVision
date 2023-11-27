@@ -108,12 +108,12 @@ class LTVSyntheticData:
         """Generate uuids according to n_users parameter"""
         self._uuids = [f'#{x}' for x in np.arange(self.n_users)]
 
-    def get_ancor_table(self, is_reset: bool = False) -> pd.DataFrame:
+    def get_ancor_table(self, force_update: bool = False) -> pd.DataFrame:
         """Create ancor table
 
         Parameters:
         ------------------------------------------------------------------------
-        is_reset: bool, do you want to regenerate ancore table?
+        force_update: bool, do you want to force update the ancor table?
         ------------------------------------------------------------------------
 
         Returns
@@ -122,7 +122,7 @@ class LTVSyntheticData:
                      ): table with registration date
         ------------------------------------------------------------------------
         """
-        if self._ancor_table is None or update:
+        if self._ancor_table is None or force_update:
             registration_day = np.random.choice(np.arange(self.n_days),
                                                 size=self.n_users)
             self._ancor_table = pd.DataFrame(
@@ -366,6 +366,6 @@ class LTVSyntheticData:
         ): table with registration date and table with purchases
         ------------------------------------------------------------------------
         """
-        ancor_table = self.get_ancor_table(is_reset=True)
+        ancor_table = self.get_ancor_table(force_update=True)
         purchases = self.get_purchases()
         return ancor_table, purchases
