@@ -28,7 +28,7 @@ class LTVexploratory:
         registration_time_col: str = "timestamp_registration",
         event_time_col: str = "timestamp_event",
         event_name_col: str = "event_name",
-        value_col: str = "revenue",
+        value_col: str = "purchase_value",
         segment_feature_cols: List[str] = None,
     ):
         self.data_ancor = data_ancor
