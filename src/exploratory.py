@@ -333,17 +333,57 @@ class LTVexploratory:
             title=f"Share of all revenue of the first {days_limit} days after customer registration (Y) versus share of paying customers",
         )
 
-    def plot_early_late_revenue_correlation(self, days_limit: int, breaks: List[int]=None) -> None:
+    def plot_early_late_revenue_correlation(
+            self, 
+            days_limit: int, 
+            optimization_window: int=7,
+            truncate_share = 0.999) -> None:
         """
         Plots the correlation between early and late cumulative revenue
         Inputs:
             days_limit: number of days of the event since registration.
-            breaks: which breaks to use from 0 until days_limit
+            optimization_window: the number of days since registration of a user that matters for the optimization of campaigns
+            truncate_share: the total share of purchasing users that the histogram includes
         """
-        (
-            self.joined_df
-            .group
+
+        end_events_date = self.joined_df[self.event_time_col].max()
+        data = self.joined_df[
+            (end_events_date - self.joined_df[self.registration_time_col]).dt.days
+            >= days_limit
+        ].copy()
+
+        # Remove users who never had a purchase and ensure all users have the same opportunity window
+        data = data[data[self.value_col] > 0]
+        data['dsi'] = ((data[self.event_time_col] - data[self.registration_time_col]).dt.days).fillna(0)
+        data = data[data['dsi'] <= days_limit]
+
+        # calculate data for the histogram
+        data = (
+            data
+            .groupby(self.uuid_col)['dsi']
+            .min()
+            .reset_index()
+            .groupby('dsi')[self.uuid_col]
+            .count()
+            .reset_index()
         )
+
+        # calculate the share of users instead of absolute numbers and numbers for the title
+        data[self.uuid_col]  = data[self.uuid_col] / data[self.uuid_col].sum()
+        data = data[data[self.uuid_col].cumsum() <=truncate_share]
+
+        share_late_customers = data[data['dsi'] > optimization_window][self.uuid_col].sum()
+        title = f"Initial Purchase Cycle\n{100*(1 - share_late_customers):.1f}% of first purchases happened within the first {optimization_window} days since registration\n\nShare of paying users (Y) versus conversion days since registration (X)"
+
+        self.graph.bar_plot(
+                    data,
+                    x_axis="dsi",
+                    y_axis=self.uuid_col,
+                    xlabel="",
+                    ylabel="",
+                    y_format="%",
+                    title=title
+                )
 
 
     def plot_n(self):
