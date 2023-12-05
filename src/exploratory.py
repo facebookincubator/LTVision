@@ -370,7 +370,7 @@ class LTVexploratory:
 
         # calculate the share of users instead of absolute numbers and numbers for the title
         data[self.uuid_col]  = data[self.uuid_col] / data[self.uuid_col].sum()
-        data = data[data[self.uuid_col].cumsum() <=truncate_share]
+        data = data[data[self.uuid_col].cumsum() <= truncate_share]
 
         share_late_customers = data[data['dsi'] > optimization_window][self.uuid_col].sum()
         title = f"Initial Purchase Cycle\n{100*(1 - share_late_customers):.1f}% of first purchases happened within the first {optimization_window} days since registration\n\nShare of paying users (Y) versus conversion days since registration (X)"
