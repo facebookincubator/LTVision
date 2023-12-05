@@ -337,7 +337,7 @@ class LTVexploratory:
             self,
             days_limit: int,
             optimization_window: int=7,
-            truncate_share = 0.999) -> None:
+            truncate_share: float = 0.999) -> None:
         """
         Plots the correlation between early and late cumulative revenue
         Inputs:
