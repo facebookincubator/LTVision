@@ -337,7 +337,7 @@ class LTVexploratory:
             self,
             days_limit: int,
             optimization_window: int=7,
-            truncate_share = 0.999) -> None:
+            truncate_share = 1.0) -> None:
         """
         Plots the correlation between early and late cumulative revenue
         Inputs:
@@ -370,7 +370,7 @@ class LTVexploratory:
 
         # calculate the share of users instead of absolute numbers and numbers for the title
         data[self.uuid_col]  = data[self.uuid_col] / data[self.uuid_col].sum()
-        data = data[data[self.uuid_col].cumsum() <= truncate_share]
+        data = data[data[self.uuid_col].cumsum() < truncate_share]
 
         share_customers_within_window = data[data['dsi'] <= optimization_window][self.uuid_col].sum()
         title = f"Initial Purchase Cycle\n{100*share_customers_within_window:.1f}% of first purchases happened within the first {optimization_window} days since registration\n\nShare of paying users (Y) versus conversion days since registration (X)"
