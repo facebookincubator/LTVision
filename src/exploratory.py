@@ -384,8 +384,8 @@ class LTVexploratory:
             .reset_index()
         )
 
-        data['early_class'] = data['early_revenue'].apply(lambda x: classify_spend(x))
-        data['late_class'] = data['late_revenue'].apply(lambda x: classify_spend(x))
+        data['early_class'] = data['early_revenue'].apply(classify_spend)
+        data['late_class'] = data['late_revenue'].apply(classify_spend)
 
         data = (
             data
