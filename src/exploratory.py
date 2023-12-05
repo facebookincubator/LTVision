@@ -334,8 +334,8 @@ class LTVexploratory:
         )
 
     def plot_early_late_revenue_correlation(
-            self, 
-            days_limit: int, 
+            self,
+            days_limit: int,
             optimization_window: int=7,
             truncate_share = 0.999) -> None:
         """
