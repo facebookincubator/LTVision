@@ -375,8 +375,8 @@ class LTVexploratory:
         # Count how many purchase users had (defined by value > 0) and then how many users are in each place
         data = data[data[self.value_col] > 0]
         data['dsi'] = ((data[self.event_time_col] - data[self.registration_time_col]).dt.days).fillna(0)
-        data['early_revenue'] = data.apply(lambda x: (x['dsi'] <= early_limit)* x[self.value_col], axis=1)
-        data['late_revenue'] = data.apply(lambda x: (x['dsi'] <= days_limit)* x[self.value_col], axis=1)
+        data['early_revenue'] = data.apply(lambda x: (x['dsi'] <= early_limit) * x[self.value_col], axis=1)
+        data['late_revenue'] = data.apply(lambda x: (x['dsi'] <= days_limit) * x[self.value_col], axis=1)
 
         data = (
             data
