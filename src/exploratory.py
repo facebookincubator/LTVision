@@ -28,7 +28,7 @@ class LTVexploratory:
         registration_time_col: str = "timestamp_registration",
         event_time_col: str = "timestamp_event",
         event_name_col: str = "event_name",
-        value_col: str = "revenue",
+        value_col: str = "purchase_value",
         segment_feature_cols: List[str] = None,
     ):
         self.data_ancor = data_ancor
@@ -45,8 +45,8 @@ class LTVexploratory:
         self.segment_feature_cols = [] if segment_feature_cols is None else segment_feature_cols
         # run auxiliar methods
         self._prep_df()
-        # self._prep_LTV_periods()
-        # self._prep_payer_types()
+        self._prep_LTV_periods()
+        self._prep_payer_types()
 
 
 
