@@ -345,7 +345,7 @@ class LTVexploratory:
             .group
         )
 
-    def plot_paying_users_flow(self, days_limit:int, early_limit: int, spending_breaks: Dict[str, float]):
+    def plot_paying_users_flow(self, days_limit: int, early_limit: int, spending_breaks: Dict[str, float]):
         """
         Plots the flow of users from early spending class to late spending class
         Inputs:
