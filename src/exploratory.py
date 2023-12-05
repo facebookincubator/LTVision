@@ -395,7 +395,6 @@ class LTVexploratory:
             .reset_index()
         )
         data[self.uuid_col] = data[self.uuid_col] / data[self.uuid_col].sum()
-        
         self.graph.bar_plot(
             data,
             x_axis='early_class',
