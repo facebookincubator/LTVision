@@ -210,6 +210,7 @@ class Graph:
         ylabel="",
         x_format=None,
         y_format=None,
+        legend=True,
         title: str = "",
         data_filter: str = None,
     ) -> sns.axisgrid.FacetGrid:
@@ -248,6 +249,7 @@ class Graph:
                 col_wrap=col_wrap,
                 row_order=row_order,
                 col_order=col_order,
+                legend=legend,
                 palette=palette,
             )
 
@@ -273,6 +275,7 @@ class Graph:
         x_axis: str,
         y_axis: str,
         hue: str = None,
+        color_dodge=True,
         row=None,
         col=None,
         col_wrap=None,
@@ -283,6 +286,7 @@ class Graph:
         ylabel="",
         x_format=None,
         y_format=None,
+        legend=True,
         title: str = "",
         data_filter: str = None,
     ) -> sns.axisgrid.FacetGrid:
@@ -313,13 +317,15 @@ class Graph:
                 x=x_axis,
                 y=y_axis,
                 hue=hue,
+                dodge=color_dodge,
                 row=row,
                 col=col,
                 col_wrap=col_wrap,
                 row_order=row_order,
                 col_order=col_order,
                 palette=palette,
-                legend=False,
+                legend=legend,
+                legend_out=self.legend_out,
                 alpha=self.bar_transparency,
             )
 
