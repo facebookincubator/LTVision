@@ -153,6 +153,40 @@ class Graph:
         for text in grid.ax.legend().get_texts():
             plt.setp(text, **font)
 
+    def set_ax_standard(self,
+        ax: sns.axisgrid.FacetGrid,
+        xlabel: str,
+        ylabel: str,
+        title: str,
+    ):
+        """
+        Applies formatting to the image size, font of the axis and the family font, title position etc
+        Assumes the object being passed is a matplotlib.Axes
+        """
+        ax.set(xlabel=xlabel, ylabel=ylabel)
+
+        ax.figure.set_size_inches(
+            self.figure_size_inches[0], self.figure_size_inches[1]
+        )
+        ax.set_xticklabels(
+            ax.get_xticklabels(),
+            fontsize=self.axis_tick_text_size,
+            family=self.font_family,
+        )
+        ax.set_yticklabels(
+            ax.get_yticklabels(),
+            fontsize=self.axis_tick_text_size,
+            family=self.font_family,
+        )
+        plt.title(
+            title,
+            font=self.font_family,
+            fontsize=self.title_text_size,
+            loc=self.title_aligment,
+        )
+        return ax
+
+
     def _set_standard(
         self,
         data: pd.DataFrame,
@@ -162,11 +196,10 @@ class Graph:
         ylabel: str,
         title: str,
     ):
-
+        """
+        Applies formatting to the image size, font of the axis and the family font, title position etc
+        """
         grid = grid.set(xlabel=xlabel, ylabel=ylabel)
-        grid.figure.set_size_inches(
-            self.figure_size_inches[0], self.figure_size_inches[1]
-        )
 
         if self.baseline is not None:
             self._add_baseline(grid, x_axis, data)
@@ -175,6 +208,9 @@ class Graph:
             self._add_floor_line(grid)
 
         self._format_legends(grid)
+        grid.figure.set_size_inches(
+            self.figure_size_inches[0], self.figure_size_inches[1]
+        )
         grid.ax.set_xticklabels(
             grid.ax.get_xticklabels(),
             fontsize=self.axis_tick_text_size,
@@ -338,3 +374,72 @@ class Graph:
                 )
 
         return grid
+    
+
+    def grid_plot(
+        self,
+        data: pd.DataFrame,
+        x_axis: str,
+        y_axis: str,
+        annot_values: str,
+        fmt: str='.1%',
+        cmap: str='Blues',
+        cbar: bool=False,
+        annotate: bool=True,
+        annot_font_size: int=20,
+        xlabel="",
+        ylabel="",
+        title: str = "",
+        data_filter: str = None,
+    ) -> sns.axisgrid.FacetGrid:
+        """
+        This method is based on the sns.heatmap method, and is meant to plot the values of interest as a 2D matrix
+
+        In addition to calling the seaborn.relplot method, this method adds the following 'features'
+        - sets the style to the class style (default: whitegrid)
+        - defines the image size (default: (20, 10))
+        - adds the baseline horizontal line and text, if defined
+        - adds the floor line, if class parameter is true
+        - makes all the text use the same font (default: Avenir)
+        - configure the legends parameters
+        - adds the title for the plot
+        - filter a subset of the provided data if data_filter is specified. If it is, uses the data_filter as the command for the 'query' in the data
+
+        Inputs
+            data: Data to be plotted
+            x_axis: the column that should be in the X-axis
+            y_axis: the column that should be in the Y-axis
+            annot_values: the column whose values should be shown in the cells
+            fmt: formatting to be applied to the annotations
+            cmap: color map for the values in the annotations
+            cbar: whether to show the color bar that indicates what each color mean numerically
+            annotate: whether we want to annotate
+            annot_font_size: the annotation font size
+            xlabel: label to be shown in the X-axis
+            ylabel: label to be shown in the Y-axis
+            title: str = "",
+            data_filter: str = None,
+        """
+
+        # selects subset of the data if specifed
+        data = data.copy() if data_filter is None else data.query(data_filter).copy()
+        data = data.pivot(index=y_axis, columns=x_axis, values=annot_values)
+
+        annot_fmt = {'fontsize': annot_font_size}
+
+        with sns.axes_style(self.plot_style):
+
+            ax = sns.heatmap(
+                data=data,
+                annot=annotate,
+                fmt=fmt,
+                cmap=cmap,
+                cbar=cbar,
+                linewidths=0.5,
+                linecolor='gray',
+                annot_kws=annot_fmt
+                )
+            
+            ax = self.set_ax_standard(ax, xlabel, ylabel, title)
+            
+        return ax
