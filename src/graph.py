@@ -380,7 +380,7 @@ class Graph:
                 )
 
         return grid
-    
+
 
     def grid_plot(
         self,
@@ -445,7 +445,7 @@ class Graph:
                 linecolor='gray',
                 annot_kws=annot_fmt
                 )
-            
+
             ax = self.set_ax_standard(ax, xlabel, ylabel, title)
-            
+
         return ax
