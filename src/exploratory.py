@@ -444,66 +444,6 @@ class LTVexploratory:
             title=f"Share of paying users until {days_limit} days after registration (Y, %) versus their early spending classification days since registration (X), \nby late spending classification (color)"
         )
 
-    def plot_paying_users_flow(self, days_limit: int, early_limit: int, spending_breaks: Dict[str, float]):
-        """
-        Plots the flow of users from early spending class to late spending class
-        Inputs:
-            days_limit: number of days of the event since registration used to define the late spending class
-            early_limit: number of days of the event since registration that is considered 'early'. Usually refers to optimization window of marketing platforms
-            spending_breaks: dictionary, in which the keys defines the name of the class and the values the upper limit of the spending associated with the class. Lower limit is considered to be the lower limit of the previous class, else 0
-        """
-
-        def classify_spend(x: float):
-            key = np.argmax(x <= np.array(list(spending_breaks.values())))
-            return list(spending_breaks.keys())[key]
-
-
-        # Select only users that are at least [days_limit] days old
-        end_events_date = self.joined_df[self.event_time_col].max()
-        data = self.joined_df[
-            (end_events_date - self.joined_df[self.registration_time_col]).dt.days
-            >= days_limit
-        ].copy()
-
-        # Remove users who never had a purchase and ensure all users have the same opportunity window
-        data = data[
-            (data[self.event_time_col] - data[self.registration_time_col]).dt.days
-            <= days_limit
-        ]
-
-        # Count how many purchase users had (defined by value > 0) and then how many users are in each place
-        data = data[data[self.value_col] > 0]
-        data['dsi'] = ((data[self.event_time_col] - data[self.registration_time_col]).dt.days).fillna(0)
-        data['early_revenue'] = data.apply(lambda x: (x['dsi'] <= early_limit) * x[self.value_col], axis=1)
-        data['late_revenue'] = data.apply(lambda x: (x['dsi'] <= days_limit) * x[self.value_col], axis=1)
-
-        data = (
-            data
-            .groupby(self.uuid_col)[['early_revenue', 'late_revenue']].sum()
-            .reset_index()
-        )
-
-        data['early_class'] = data['early_revenue'].apply(classify_spend)
-        data['late_class'] = data['late_revenue'].apply(classify_spend)
-
-        data = (
-            data
-            .groupby(['early_class', 'late_class'])
-            [self.uuid_col]
-            .count()
-            .reset_index()
-        )
-        data[self.uuid_col] = data[self.uuid_col] / data[self.uuid_col].sum()
-        self.graph.bar_plot(
-            data,
-            x_axis='early_class',
-            y_axis=self.uuid_col,
-            y_format='%',
-            hue='late_class',
-            title=f"Share of paying users until {days_limit} days after registration (Y, %) versus their early spending classification days since registration (X), \nby late spending classification (color)"
-        )
-
-
     def plot_n(self):
         _fig, ax = plt.subplots(2, 1, figsize=(10, 10))
         self.data_ancor["ancor_event_name"].value_counts().plot.barh(ax=ax[0])
