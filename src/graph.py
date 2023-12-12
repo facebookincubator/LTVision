@@ -374,7 +374,7 @@ class Graph:
                 )
 
         return grid
-    
+
 
     def grid_plot(
         self,
