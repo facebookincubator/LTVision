@@ -10,7 +10,7 @@ import {themes as prismThemes} from 'prism-react-renderer';
 const config = {
   title: 'LTVision',
   tagline: 'An Open Source Library for forecasting Lifetime Value',
-  favicon: 'img/favicon.ico',
+  favicon: 'img/LTVision-Symbol.svg',
 
   // Set the production url of your site here
   url: 'https://facebookincubator.github.io',
@@ -66,10 +66,10 @@ const config = {
       // Replace with your project's social card
       image: 'img/docusaurus-social-card.jpg',
       navbar: {
-        title: 'My Site',
+        title: 'LTVision',
         logo: {
-          alt: 'My Site Logo',
-          src: 'img/logo.svg',
+          alt: 'LTVision Logo',
+          src: 'img/LTVision-Symbol.svg',
         },
         items: [
           {
@@ -77,10 +77,12 @@ const config = {
             sidebarId: 'tutorialSidebar',
             position: 'left',
             label: 'Tutorial',
+            to: '/docs/introduction'
           },
+          {to: '/docs/category/getting-started', label: 'Getting Started', position: 'left'},
           {to: '/blog', label: 'Blog', position: 'left'},
           {
-            href: 'https://github.com/facebook/docusaurus',
+            href: 'https://github.com/facebookincubator/LTVision',
             label: 'GitHub',
             position: 'right',
           },
