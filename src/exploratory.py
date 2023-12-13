@@ -324,13 +324,13 @@ class LTVexploratory:
             title=f"Share of all revenue of the first {days_limit} days after customer registration (Y) versus share of paying customers",
         )
 
-    def plot_early_late_revenue_correlation(
+    def histogram_per_conversion_day(
             self,
             days_limit: int,
             optimization_window: int=7,
             truncate_share = 1.0) -> None:
         """
-        Plots the correlation between early and late cumulative revenue
+        Plots the distribution of all users that converted until (days_limit) days after registration per conversion day
         Inputs:
             days_limit: number of days of the event since registration.
             optimization_window: the number of days since registration of a user that matters for the optimization of campaigns
