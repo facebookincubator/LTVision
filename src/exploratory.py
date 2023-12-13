@@ -203,17 +203,8 @@ class LTVexploratory:
             complete_data, cross_uuid, on=["ancor", "events"], how="left"
         )
         complete_data = complete_data.fillna(0)
-        complete_data["description"] = complete_data.apply(
-            lambda row: row["ancor"] + " & " + row["events"], axis=1
-        )
-
-        self.graph.bar_plot(
-            complete_data,
-            x_axis="description",
-            y_axis=self.uuid_col,
-            xlabel="",
-            ylabel="Number of users",
-        )
+        complete_data[self.uuid_col] = complete_data[self.uuid_col]/np.sum(complete_data[self.uuid_col])
+        return self.graph.grid_plot(complete_data, "ancor", "events", self.uuid_col)
 
     def plot_purchases_distribution(
         self, days_limit: int, truncate_share: float = 0.99
