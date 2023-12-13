@@ -324,13 +324,13 @@ class LTVexploratory:
             title=f"Share of all revenue of the first {days_limit} days after customer registration (Y) versus share of paying customers",
         )
 
-    def plot_early_late_revenue_correlation(
+    def plot_user_histogram_per_conversion_day(
             self,
             days_limit: int,
             optimization_window: int=7,
             truncate_share = 1.0) -> None:
         """
-        Plots the correlation between early and late cumulative revenue
+        Plots the distribution of all users that converted until (days_limit) days after registration per conversion day
         Inputs:
             days_limit: number of days of the event since registration.
             optimization_window: the number of days since registration of a user that matters for the optimization of campaigns
@@ -375,6 +375,48 @@ class LTVexploratory:
                     y_format="%",
                     title=title
                 )
+    def plot_early_late_revenue_correlation(
+        self,
+        days_limit: int,
+        optimization_window: int=7) -> None:
+        """
+        Calculates and plots correlation between user-level revenue
+        The correlation is between the revenue in the first [optimization_window] days after registration and the following [days_limit - optimization_window] days
+        This can be useful to decide what number of days should define the 'Lifetime Value Window' of a user
+        
+        Inputs
+             - days_limit: max number of days after registration to be considered in the analysis
+             - optimization_window: number of days from registration that the optimization of the marketing campaigns are operated
+        """
+        # Filters users to ensure that all have the same opportunity to generate revenue until [days_limits] after registration
+        end_events_date = self.joined_df[self.event_time_col].max()
+        cohort_filter = (end_events_date - self.joined_df[self.registration_time_col]).dt.days >= days_limit # ensure to only gets cohorts that are 'days_limit' old
+        opportunity_filter = (self.joined_df[self.event_time_col] - self.joined_df[self.registration_time_col]).dt.days <= days_limit # only consider the first 'days_limit' days of a user
+        user_revenue_data = self.joined_df[cohort_filter & opportunity_filter].copy()
+
+        # Create a new dataframe for cross join, so we can ensure that all users have (days_limit + 1) days to calculate correlation
+        days_data = pd.DataFrame({'days_since_install': np.linspace(optimization_window, days_limit, days_limit - optimization_window + 1).astype(np.int32)})
+        days_data['key'] = 1
+        user_revenue_data['key'] = 1
+        user_revenue_data = pd.merge(user_revenue_data, days_data, on='key').drop('key', axis=1)
+
+        # Calculates the revenue of each user until N days after registration (as the user doesn't necessarily spend on all days)
+        user_revenue_data[self.value_col] = (user_revenue_data['days_since_registration'] <= user_revenue_data['days_since_install']) * user_revenue_data[self.value_col]
+        user_revenue_data = (
+            user_revenue_data
+            .groupby([self.uuid_col, 'days_since_install'])
+            [self.value_col].sum().reset_index()
+        )
+        # Calculate correlation, extract the correlation only for the 'early revenue' and plot it
+        user_revenue_data = user_revenue_data.pivot(index=self.uuid_col, columns='days_since_install', values=self.value_col).corr().reset_index()
+        self.graph.line_plot(
+            user_revenue_data,
+            x_axis='days_since_install',
+            y_axis=optimization_window,
+            xlabel='Days Since User Registration',
+            ylabel='Pearson Correlation',
+            title=f'Correlation (Y) between revenue until {optimization_window} after registration with revenue until (X) days after registration'
+            )
 
     def plot_paying_users_flow(self, days_limit: int, early_limit: int, spending_breaks: Dict[str, float]):
         """
