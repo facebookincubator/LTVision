@@ -408,7 +408,6 @@ class LTVexploratory:
             .groupby([self.uuid_col, 'days_since_install'])
             [self.value_col].sum().reset_index()
         )
-        
         # Calculate correlation, extract the correlation only for the 'early revenue' and plot it
         user_revenue_data = user_revenue_data.pivot(index=self.uuid_col, columns='days_since_install', values=self.value_col).corr().reset_index()
         self.graph.line_plot(
