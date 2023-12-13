@@ -324,7 +324,7 @@ class LTVexploratory:
             title=f"Share of all revenue of the first {days_limit} days after customer registration (Y) versus share of paying customers",
         )
 
-    def histogram_per_conversion_day(
+    def plot_user_histogram_per_conversion_day(
             self,
             days_limit: int,
             optimization_window: int=7,
@@ -375,6 +375,12 @@ class LTVexploratory:
                     y_format="%",
                     title=title
                 )
+        
+        def histogram_per_conversion_day(
+            self,
+            days_limit: int,
+            optimization_window: int=7,
+            truncate_share = 1.0) -> None:
 
     def plot_paying_users_flow(self, days_limit: int, early_limit: int, spending_breaks: Dict[str, float]):
         """
