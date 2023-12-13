@@ -375,7 +375,6 @@ class LTVexploratory:
                     y_format="%",
                     title=title
                 )
-        
     def plot_early_late_revenue_correlation(
         self,
         days_limit: int,
