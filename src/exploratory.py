@@ -388,7 +388,6 @@ class LTVexploratory:
              - days_limit: max number of days after registration to be considered in the analysis
              - optimization_window: number of days from registration that the optimization of the marketing campaigns are operated
         """
-        
         # Filters users to ensure that all have the same opportunity to generate revenue until [days_limits] after registration
         end_events_date = self.joined_df[self.event_time_col].max()
         cohort_filter = (end_events_date - self.joined_df[self.registration_time_col]).dt.days >= days_limit # ensure to only gets cohorts that are 'days_limit' old
