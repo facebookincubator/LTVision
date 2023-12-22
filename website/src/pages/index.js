@@ -45,16 +45,6 @@ function HomePageCentralContent() {
               and cost tactics in terms of building a profitable business.
               </p>
           </div>
-          <div className="col col--6">
-            <iframe
-              width="100%"
-              height="400"
-              src="https://www.youtube.com/embed/ogLGvNOpCmg"
-              frameborder="0"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-              allowfullscreen
-            />
-          </div>
         </div>
       </div>
     </div>
