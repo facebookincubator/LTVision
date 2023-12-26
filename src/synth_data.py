@@ -75,7 +75,7 @@ class LTVSyntheticData:
         self._high_payers = None
         self._low_payers = None
         self._mid_payers = None
-        self._ancor_table = None
+        self._users_table = None
 
         self._check_inputs()
 
@@ -108,30 +108,30 @@ class LTVSyntheticData:
         """Generate uuids according to n_users parameter"""
         self._uuids = [f'#{x}' for x in np.arange(self.n_users)]
 
-    def get_ancor_table(self, force_update: bool = False) -> pd.DataFrame:
-        """Create ancor table
+    def get_users_table(self, force_update: bool = False) -> pd.DataFrame:
+        """Create users table
 
         Parameters:
         ------------------------------------------------------------------------
-        force_update: bool, do you want to force update the ancor table?
+        force_update: bool, do you want to force update the users table?
         ------------------------------------------------------------------------
 
         Returns
         ------------------------------------------------------------------------
-        pd.DataFrame(columns=[UUID, timestamp, ancor_event_name]
+        pd.DataFrame(columns=[UUID, timestamp, users_event_name]
                      ): table with registration date
         ------------------------------------------------------------------------
         """
-        if self._ancor_table is None or force_update:
+        if self._users_table is None or force_update:
             registration_day = np.random.choice(np.arange(self.n_days),
                                                 size=self.n_users)
-            self._ancor_table = pd.DataFrame(
+            self._users_table = pd.DataFrame(
                 {'UUID': self._uuids, 'timestamp': registration_day})
-            self._ancor_table['ancor_event_name'] = 'registration'
-            self._ancor_table['timestamp'] = (
+            self._users_table['users_event_name'] = 'registration'
+            self._users_table['timestamp'] = (
                 pd.to_datetime(self.date_start) + pd.to_timedelta(
-                    self._ancor_table['timestamp'], unit='D'))
-        return self._ancor_table
+                    self._users_table['timestamp'], unit='D'))
+        return self._users_table
 
     def _define_active_users(self) -> None:
         """Choose active_uuid, high_payers, mid_payers and low_payers"""
@@ -283,8 +283,8 @@ class LTVSyntheticData:
         ------------------------------------------------------------------------
         """
 
-        if self._ancor_table is None:
-            raise Exception('Run get_ancor_table method first')
+        if self._users_table is None:
+            raise Exception('Run get_users_table method first')
         self._define_active_users()
         purchases = pd.DataFrame(columns=['UUID',
                                           'timestamp',
@@ -295,21 +295,21 @@ class LTVSyntheticData:
         if self.is_subscr:
             high_payers_payments = self._get_payments_subscr(
                 active_uuid=self._high_payers,
-                registration_table=self._ancor_table,
+                registration_table=self._users_table,
                 days_for_each_subscr_option=self.days_for_each_subscr_option,
                 value_for_each_subscr_option=self.payment_for_each_subscr_option,
                 p_0=0.1,
                 max_day=max_day)
             mid_payers_payments = self._get_payments_subscr(
                 active_uuid=self._mid_payers,
-                registration_table=self._ancor_table,
+                registration_table=self._users_table,
                 days_for_each_subscr_option=self.days_for_each_subscr_option,
                 value_for_each_subscr_option=self.payment_for_each_subscr_option,
                 p_0=0.3,
                 max_day=max_day)
             low_payers_payments = self._get_payments_subscr(
                 active_uuid=self._low_payers,
-                registration_table=self._ancor_table,
+                registration_table=self._users_table,
                 days_for_each_subscr_option=self.days_for_each_subscr_option,
                 value_for_each_subscr_option=self.payment_for_each_subscr_option,
                 p_0=0.6,
@@ -323,7 +323,7 @@ class LTVSyntheticData:
                 std_for_value=self.std_for_value,
                 active_uuid=self._mid_payers,
                 max_day=max_day,
-                registration_table=self._ancor_table)
+                registration_table=self._users_table)
             high_payers_payments = self._get_purchases(
                 mean_for_day_number=self.mean_for_day_number*2,
                 std_for_day_number=self.std_for_day_number*2**0.5,
@@ -331,7 +331,7 @@ class LTVSyntheticData:
                 std_for_value=self.std_for_value*2**0.5,
                 active_uuid=self._high_payers,
                 max_day=max_day,
-                registration_table=self._ancor_table)
+                registration_table=self._users_table)
             low_payers_payments = self._get_purchases(
                 mean_for_day_number=self.mean_for_day_number*0.5,
                 std_for_day_number=self.std_for_day_number*0.5**0.5,
@@ -339,12 +339,12 @@ class LTVSyntheticData:
                 std_for_value=self.std_for_value*0.5**0.5,
                 active_uuid=self._low_payers,
                 max_day=max_day,
-                registration_table=self._ancor_table)
+                registration_table=self._users_table)
             purchases = pd.concat([purchases, high_payers_payments, mid_payers_payments, low_payers_payments], ignore_index=True)
         purchases['event_name'] = 'purchase'
 
         purchases['registration_day'] = purchases['UUID'].map(
-            self._ancor_table.set_index('UUID')['timestamp'])
+            self._users_table.set_index('UUID')['timestamp'])
         purchases = purchases[purchases['timestamp'] >=
                               purchases['registration_day']]
         purchases = purchases.drop(columns=['registration_day'])
@@ -354,18 +354,18 @@ class LTVSyntheticData:
         return purchases
 
     def generarte_datasets(self) -> (pd.DataFrame, pd.DataFrame):
-        """Create ancor table and table with purchases according to
+        """Create users table and table with purchases according to
         registration table
 
         Returns
         ------------------------------------------------------------------------
         (
-            pd.DataFrame(columns=[UUID, ancor_event_name, timestamp]),
+            pd.DataFrame(columns=[UUID, users_event_name, timestamp]),
             pd.DataFrame(columns=[UUID, event_name, timestamp,
                                   purchase_value])
         ): table with registration date and table with purchases
         ------------------------------------------------------------------------
         """
-        ancor_table = self.get_ancor_table(force_update=True)
+        users_table = self.get_users_table(force_update=True)
         purchases = self.get_purchases()
-        return ancor_table, purchases
+        return users_table, purchases

@@ -22,7 +22,7 @@ class LTVexploratory:
 
     def __init__(
         self,
-        data_ancor: pd.DataFrame,
+        data_users: pd.DataFrame,
         data_events: pd.DataFrame,
         uuid_col: str = 'UUID',
         registration_time_col: str = "timestamp_registration",
@@ -31,7 +31,7 @@ class LTVexploratory:
         value_col: str = "purchase_value",
         segment_feature_cols: List[str] = None,
     ):
-        self.data_ancor = data_ancor
+        self.data_users = data_users
         self.data_events = data_events
         self._period = 7
         self._period_for_ltv = 7 * 10
@@ -51,11 +51,11 @@ class LTVexploratory:
 
 
     def _prep_df(self) -> None:
-        ancor_uuid = set(self.data_ancor[self.uuid_col])
+        users_uuid = set(self.data_users[self.uuid_col])
         event_uuid = set(self.data_events[self.uuid_col])
         uuid_stat = pd.DataFrame(columns=['table', 'number_uuid'])
-        uuid_stat['table'] = ['ancor only', 'event only', 'ancor & event']
-        uuid_stat['number_uuid'] = [len(ancor_uuid - event_uuid), len(event_uuid - ancor_uuid), len(event_uuid & ancor_uuid)]
+        uuid_stat['table'] = ['users only', 'event only', 'users & event']
+        uuid_stat['number_uuid'] = [len(users_uuid - event_uuid), len(event_uuid - users_uuid), len(event_uuid & users_uuid)]
         uuid_stat['share_uuid'] = uuid_stat['number_uuid'].map(lambda x: f"{x/uuid_stat['number_uuid'].sum():.2%}")
         display(uuid_stat)
 
@@ -63,7 +63,7 @@ class LTVexploratory:
         # Join two tables, I will analyse only data in event table, because we can't do anything with users who don't have purchase histiry
 
 
-        df = self.data_ancor.merge(self.data_events, on=self.uuid_col, how='inner', suffixes=('_registration', '_event'))
+        df = self.data_users.merge(self.data_events, on=self.uuid_col, how='inner', suffixes=('_registration', '_event'))
         data_upload_date = df[self.event_time_col].max()
         df['max_days_for_ltv'] = (data_upload_date - df[self.registration_time_col]).dt.days + 1
         df['year-month'] = df[self.event_time_col].dt.year.astype(str) + '-' + ("0" + df[self.event_time_col].dt.month.astype(str)).str[-2:]
@@ -83,7 +83,7 @@ class LTVexploratory:
         # Left join users and events data, so that you have a dataframe with all users and their events (if no event, then timestamp is null)
         # just select some columns to make it easier to understand what is the information that is used and avoid join complications caused by the name of other columns
         self.joined_df = pd.merge(
-            self.data_ancor,
+            self.data_users,
             self.data_events,
             on=self.uuid_col,
             how="left",
@@ -132,17 +132,17 @@ class LTVexploratory:
 
     # Analysis Plots
     def summary(self):
-        data_ancor = self.joined_df[
+        data_users = self.joined_df[
             [self.uuid_col, self.registration_time_col]
         ].drop_duplicates()
         print(
             f"""
-            table:         data_ancor
-            date start:    {data_ancor[self.registration_time_col].min()}
-            date end:      {data_ancor[self.registration_time_col].max()}
-            period:        {(data_ancor[self.registration_time_col].max()-data_ancor[self.registration_time_col].min()).days/365:.2f} years
-            customers:     {data_ancor[self.uuid_col].nunique():,d}
-            events:        {data_ancor.shape[0]:,d}
+            table:         data_users
+            date start:    {data_users[self.registration_time_col].min()}
+            date end:      {data_users[self.registration_time_col].max()}
+            period:        {(data_users[self.registration_time_col].max()-data_users[self.registration_time_col].min()).days/365:.2f} years
+            customers:     {data_users[self.uuid_col].nunique():,d}
+            events:        {data_users.shape[0]:,d}
             """
         )
 
@@ -164,32 +164,32 @@ class LTVexploratory:
     def plot_users_intersection(self):
         """
         Plot the interection between users in the two input data
-        We expect that all users in events data are also in ancor data.
+        We expect that all users in events data are also in users data.
         The inverse can be true, as there may be users who never sent an event
         """
 
         # Get uuids from each input data
-        ancor_uuids = pd.DataFrame({self.uuid_col: self.data_ancor[self.uuid_col].unique()})
-        ancor_uuids["ancor"] = "Present in Ancor"
+        users_uuids = pd.DataFrame({self.uuid_col: self.data_users[self.uuid_col].unique()})
+        users_uuids["users"] = "Present in Users"
         events_uuids = pd.DataFrame({self.uuid_col: self.data_events[self.uuid_col].unique()})
         events_uuids["events"] = "Present in Events"
 
         # Calculate how many users are in each category
-        cross_uuid = pd.merge(ancor_uuids, events_uuids, on=self.uuid_col, how="outer")
-        cross_uuid["ancor"] = cross_uuid["ancor"].fillna("Not in Ancor")
+        cross_uuid = pd.merge(users_uuids, events_uuids, on=self.uuid_col, how="outer")
+        cross_uuid["users"] = cross_uuid["users"].fillna("Not in users")
         cross_uuid["events"] = cross_uuid["events"].fillna("Not in Events")
         cross_uuid = (
-            cross_uuid.groupby(["ancor", "events"])[self.uuid_col].count().reset_index()
+            cross_uuid.groupby(["users", "events"])[self.uuid_col].count().reset_index()
         )
 
         # Create a dataframe containing all combinations for the visualization
         complete_data = pd.DataFrame(
             {
-                "ancor": [
-                    "Present in Ancor",
-                    "Not in Ancor",
-                    "Present in Ancor",
-                    "Not in Ancor",
+                "users": [
+                    "Present in Users",
+                    "Not in Users",
+                    "Present in Users",
+                    "Not in Users",
                 ],
                 "events": [
                     "Present in Events",
@@ -200,11 +200,11 @@ class LTVexploratory:
             }
         )
         complete_data = pd.merge(
-            complete_data, cross_uuid, on=["ancor", "events"], how="left"
+            complete_data, cross_uuid, on=["users", "events"], how="left"
         )
         complete_data = complete_data.fillna(0)
         complete_data[self.uuid_col] = complete_data[self.uuid_col]/np.sum(complete_data[self.uuid_col])
-        return self.graph.grid_plot(complete_data, "ancor", "events", self.uuid_col)
+        return self.graph.grid_plot(complete_data, "users", "events", self.uuid_col)
 
     def plot_purchases_distribution(
         self, days_limit: int, truncate_share: float = 0.99
@@ -479,8 +479,8 @@ class LTVexploratory:
 
     def plot_n(self):
         _fig, ax = plt.subplots(2, 1, figsize=(10, 10))
-        self.data_ancor["ancor_event_name"].value_counts().plot.barh(ax=ax[0])
-        ax[0].set_title("event_name from df_ancore")
+        self.data_users["users_event_name"].value_counts().plot.barh(ax=ax[0])
+        ax[0].set_title("event_name from df_userse")
         self.data_events["event_name"].value_counts().plot.barh(ax=ax[1])
         ax[1].set_title("event_name from df_event")
         plt.show()
