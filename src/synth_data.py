@@ -43,10 +43,10 @@ class LTVSyntheticData:
     """
     def __init__(self,
                 n_users: int = 10000,
-                share_payers: float = 0.2,
+                share_payers: float = 0.05,
                 n_days: int = 365,
-                share_high_payers: float = 0.2,
-                share_low_payers: float = 0.5,
+                share_high_payers: float = 0.05,
+                share_low_payers: float = 0.8,
                 date_start: str = '2020-01-01',
                 is_subscr: bool = True,
                 mean_for_value: float = 10.,
@@ -325,18 +325,18 @@ class LTVSyntheticData:
                 max_day=max_day,
                 registration_table=self._ancor_table)
             high_payers_payments = self._get_purchases(
-                mean_for_day_number=self.mean_for_day_number*2,
-                std_for_day_number=self.std_for_day_number*2**0.5,
-                mean_for_value=self.mean_for_value*2,
-                std_for_value=self.std_for_value*2**0.5,
+                mean_for_day_number=self.mean_for_day_number*5,
+                std_for_day_number=self.std_for_day_number*5**0.5,
+                mean_for_value=self.mean_for_value*5,
+                std_for_value=self.std_for_value*5**0.5,
                 active_uuid=self._high_payers,
                 max_day=max_day,
                 registration_table=self._ancor_table)
             low_payers_payments = self._get_purchases(
-                mean_for_day_number=self.mean_for_day_number*0.5,
-                std_for_day_number=self.std_for_day_number*0.5**0.5,
-                mean_for_value=self.mean_for_value*0.5,
-                std_for_value=self.std_for_value*0.5**0.5,
+                mean_for_day_number=self.mean_for_day_number*0.2,
+                std_for_day_number=self.std_for_day_number*0.2**0.5,
+                mean_for_value=self.mean_for_value*0.2,
+                std_for_value=self.std_for_value*0.2**0.5,
                 active_uuid=self._low_payers,
                 max_day=max_day,
                 registration_table=self._ancor_table)
