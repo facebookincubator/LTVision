@@ -11,6 +11,7 @@ from sklearn.metrics import accuracy_score, r2_score
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+from pandas.api.types import is_datetime64_any_dtype , is_object_dtype, is_any_real_numeric_dtype, is_dtype_equal
 import plotly.graph_objects as go
 import seaborn as sns
 from src.graph import Graph
@@ -44,10 +45,47 @@ class LTVexploratory:
         self.value_col = value_col
         self.segment_feature_cols = [] if segment_feature_cols is None else segment_feature_cols
         # run auxiliar methods
+        self._validate_datasets()
         self._prep_df()
         self._prep_LTV_periods()
         self._prep_payer_types()
 
+    def _validate_datasets(self) -> None:
+        """
+        This method perform the following checks for the input datasets:
+        users dataset:
+            - 
+        users dataset:
+            - user-id column is string or object type
+            - time of event column is datetime
+        
+        events dataset:
+            - user-id column is string or object type
+            - event name column is string or object type
+            - time of event column is datetime
+            - purchase value is int or float type
+
+        consistency checks
+            - user-id columns of both datasets are of the same type
+            - time of event columns of both datasets are of the same type
+        """
+
+        # users dataset checks
+        assert((isinstance(
+            self.data_ancor[self.uuid_col].dtype, pd.StringDtype) or 
+            is_object_dtype(self.data_ancor[self.uuid_col]))) , f"The column [{self.uuid_col}] referencing to the user-id in the users dataset was expected to be of data pd.StringDtype or object. But it is of type {self.data_ancor[self.uuid_col].dtype}"
+        assert(is_datetime64_any_dtype(self.data_ancor[self.registration_time_col])), f"The column [{self.registration_time_col}] referencing to the registrationtime in the users dataset was expected to be of type [datime]. But it is of type {self.data_ancor[self.registration_time_col].dtype}"
+
+        # events dataset checks
+        assert((isinstance(
+            self.data_events[self.uuid_col].dtype, pd.StringDtype) or 
+            is_object_dtype(self.data_events[self.uuid_col]))) , f"The column [{self.uuid_col}] referencing to the user-id in the events dataset was expected to be of data pd.StringDtype or object. But it is of type {self.data_ancor[self.uuid_col].dtype}"
+        assert(is_datetime64_any_dtype(self.data_events[self.event_time_col])) , f"The column [{self.event_time_col}] referencing to the registrationtime in the events dataset was expected to be of type [datime]. But it is of type {self.data_ancor[self.event_time_col].dtype}"
+        assert(is_any_real_numeric_dtype(self.data_events[self.value_col])) , f"The column [{self.value_col}] referencing value of a transaction in the events dataset was expected to be of numeric. But it is of type {self.data_ancor[self.value_col].dtype}"
+
+        # consistency checks
+        assert(is_dtype_equal(self.data_ancor[self.uuid_col], self.data_events[self.uuid_col])), f"The user-id columns of the two input datasets are not the same. In the users dataset it is of type [{self.data_ancor[self.uuid_col].dtype}], while in the events dataset it is of type [{self.data_ancor[self.uuid_col].dtype}]"
+        assert(is_dtype_equal(self.data_ancor[self.registration_time_col], self.data_events[self.event_time_col])), f"The timestamp columns of the two input datasets are not the same. In the users dataset it is of type [{self.data_ancor[self.registration_time_col].dtype}], while in the events dataset it is of type [{self.data_ancor[self.event_time_col].dtype}]"
 
 
     def _prep_df(self) -> None:
