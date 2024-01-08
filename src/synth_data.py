@@ -2,59 +2,44 @@
 
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
-import numpy as np
-import pandas as pd
-from typing import Tuple
-
-
-from functools import partial
-from typing import Dict
-
-
-from typing import Any
-def f(x, y): 
-    return x + y
 import pandas as pd
 import numpy as np
-
-from functools import partial
-from typing import Dict
-
-
-from typing import Any
-def f(x, y): 
-    return x + y
-import pandas as pd
-import numpy as np
-
-from functools import partial
-from typing import Dict
-
-
-from typing import Any
-def f(x, y): 
-    return x + y
-import pandas as pd
-import numpy as np
+from typing import Any, Dict, Tuple
 from scipy.stats import logistic, pareto
 
 class LTVSynthetiseData():
-    def __init__(self) -> None:
-        pass
+    def __init__(self, 
+                 n_users: int=100000,
+                 registration_event_name: str='first_app_open',
+                 purchase_event_name: str='purchase') -> None:
+        self.n_users = n_users
+        self.registration_event_name = registration_event_name
+        self.purchase_event_name = purchase_event_name
+        self.customer_data = None
 
     def get_customers_data(self):
-        raise NotImplementedError
-    
+        """
+        Get dataframe containing base costumer data, such as their user id, country, device, and download method for the app
+        """
+        customer_data = self._get_base_user_ids()
+        customer_data = self._set_registration_event(customer_data) # create registration_name column
+        customer_data = self._set_demographic_properties(customer_data) # create and give demographic data
+        self.customer_data = customer_data
+        return customer_data
+
     def get_events_data(self):
         raise NotImplementedError
-    
+
     def _set_logit_map(self):
         raise NotImplementedError
-    
+
     @staticmethod
     def _sample_from_pareto(expected_value: float, size: int=None) -> np.ndarray:
         """
         Generate (size) samples of a Pareto distribution with expected value (expected_value)
+        Inputs
+            - expected_value: desired expected value of the Pareto distribution 
+            - size: number of samples to generate
         """
         alpha = expected_value / (expected_value - 1)
         return (np.random.pareto(alpha, size=size) + 1)
@@ -64,13 +49,28 @@ class LTVSynthetiseData():
         """
         Generate (size) samples of a log-normal distribution with expected value (expected_value)
         and standard deviation (stddev). 
+        Inputs
+            - expected_value: desired expected value of the log-normal distribution 
+            - stddev: desired standard deviation of the log-normal distribution
+            - size: number of samples to generate
         """
-
         mean = np.log(expected_value/(
             ((stddev**2)/(expected_value**2) + 1
             )**0.5))
         sigma = np.log((stddev**2)/(expected_value**2)+ 1)**0.5
         return np.random.lognormal(mean, sigma, size=size)
+    
+    @staticmethod
+    def _sample_from_beta(expected_value: float, beta_samples: int, size:int=None) -> np.ndarray:
+        """
+        Inputs
+            - expected_value: desired expected value of the Beta distribution, i.e. the probability positives/(positives+negatives)
+            - beta_samples: positives + negatives
+            - size: number of samples to generate
+        """
+        positives = expected_value * beta_samples
+        negatives = beta_samples - positives
+        return np.random.beta(positives, negatives, size=size)
     
     def _calculate_event_conditional_value(self, events_data: pd.DataFrame):
         """
@@ -84,14 +84,34 @@ class LTVSynthetiseData():
         and then samplying based on a given distribution
         """
         expected_value = events_data.apply(self.value_map).sum(axis=1)
-        return 
+        return expected_value
     
     def _calculate_probability(self, events_data: pd.DataFrame) -> np.ndarray:
         logits = events_data.apply(self.logit_map).sum(axis=1)
         return logistic.cdf(logits)
     
-    def _set_demographic_properties(self, customer_data: pd.DataFrame) -> None:
-        raise NotImplementedError
+    def _get_base_user_ids(self):
+        """
+        Generate a sequence of 1 to N numbers representing the unique user ID, where N is the number of users
+        """
+        return pd.DataFrame({'UUID': np.linspace(1, self.n_users, num=self.n_users).astype(np.int64)})
+    
+    @staticmethod
+    def _set_registration_event(customer_data: pd.DataFrame, event_name: str) -> pd.DataFrame:
+        customer_data['registration_event_name'] = event_name
+        return customer_data
+
+    
+    @staticmethod
+    def _set_demographic_properties(customer_data: pd.DataFrame) -> pd.DataFrame:
+
+        size = len(customer_data)
+        demography_data =  pd.DataFrame({
+            'country': np.random.choice(['US', 'CA', 'GB', 'BR', 'IN', 'ES', 'FR'], size=size, p=[0.2, 0.1, 0.05, 0.15, 0.3, 0.1, 0.1], replace=True),
+            'device': np.random.choice(['ios', 'android'], size=size, p=[0.4, 0.6], replace=True),
+            'download_method': np.random.choice(['wifi', 'roaming'], size=size, p=[0.7, 0.3], replace=True),
+        })
+        return pd.concat([customer_data, demography_data], axis=1)
     
     def _set_dates(self, events_data: pd.DataFrame) -> None:
         raise NotImplementedError
