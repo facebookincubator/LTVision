@@ -17,6 +17,27 @@ def f(x, y):
 import pandas as pd
 import numpy as np
 
+from functools import partial
+from typing import Dict
+
+
+from typing import Any
+def f(x, y): 
+    return x + y
+import pandas as pd
+import numpy as np
+
+from functools import partial
+from typing import Dict
+
+
+from typing import Any
+def f(x, y): 
+    return x + y
+import pandas as pd
+import numpy as np
+from scipy.stats import logistic, pareto
+
 class LTVSynthetiseData():
     def __init__(self) -> None:
         pass
@@ -27,9 +48,47 @@ class LTVSynthetiseData():
     def get_events_data(self):
         raise NotImplementedError
     
-    @staticmethod
-    def _calculate_probability(attributes: pd.Series, properties_value_map: Dict[str, float]) -> float:
+    def _set_logit_map(self):
         raise NotImplementedError
+    
+    @staticmethod
+    def _sample_from_pareto(expected_value: float, size: int=None) -> np.ndarray:
+        """
+        Generate (size) samples of a Pareto distribution with expected value (expected_value)
+        """
+        alpha = expected_value / (expected_value - 1)
+        return (np.random.pareto(alpha, size=size) + 1)
+    
+    @staticmethod
+    def _sample_from_lognormal(expected_value: float, stddev: float, size: int=None) -> np.ndarray:
+        """
+        Generate (size) samples of a log-normal distribution with expected value (expected_value)
+        and standard deviation (stddev). 
+        """
+
+        mean = np.log(expected_value/(
+            ((stddev**2)/(expected_value**2) + 1
+            )**0.5))
+        sigma = np.log((stddev**2)/(expected_value**2)+ 1)**0.5
+        return np.random.lognormal(mean, sigma, size=size)
+    
+    def _calculate_event_conditional_value(self, events_data: pd.DataFrame):
+        """
+        Returns for each user, the value a purchase *conditional* to the characteristics
+        defined in the self.value_map, such as
+            - country
+            - device
+            - days since registration
+        We do this by first calculating the conditional expected value
+        E(x | country, device, ...)
+        and then samplying based on a given distribution
+        """
+        expected_value = events_data.apply(self.value_map).sum(axis=1)
+        return 
+    
+    def _calculate_probability(self, events_data: pd.DataFrame) -> np.ndarray:
+        logits = events_data.apply(self.logit_map).sum(axis=1)
+        return logistic.cdf(logits)
     
     def _set_demographic_properties(self, customer_data: pd.DataFrame) -> None:
         raise NotImplementedError
