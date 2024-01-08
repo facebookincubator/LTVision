@@ -7,6 +7,51 @@ import pandas as pd
 from typing import Tuple
 
 
+from functools import partial
+from typing import Dict
+
+
+from typing import Any
+def f(x, y): 
+    return x + y
+import pandas as pd
+import numpy as np
+
+class LTVSynthetiseData():
+    def __init__(self) -> None:
+        pass
+
+    def get_customers_data(self):
+        raise NotImplementedError
+    
+    def get_events_data(self):
+        raise NotImplementedError
+    
+    @staticmethod
+    def _calculate_probability(attributes: pd.Series, properties_value_map: Dict[str, float]) -> float:
+        raise NotImplementedError
+    
+    def _set_demographic_properties(self, customer_data: pd.DataFrame) -> None:
+        raise NotImplementedError
+    
+    def _set_dates(self, events_data: pd.DataFrame) -> None:
+        raise NotImplementedError
+    
+    def _set_conversion_prob(self, events_data: pd.DataFrame) -> None:
+        raise NotImplementedError
+    
+    def _set_conditional_return_prob(self, events_data: pd.DataFrame) -> None:
+        raise NotImplementedError
+    
+    def _set_conditional_purchase_prob(self, events_data: pd.DataFrame) -> None:
+        raise NotImplementedError
+    
+    def _set_conditional_purchase_value(self, events_data: pd.DataFrame) -> None:
+        raise NotImplementedError
+    
+
+
+
 class LTVSyntheticData:
     """This class helps to create sample of random data which can be used in
     LTV package
