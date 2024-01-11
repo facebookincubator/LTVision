@@ -45,6 +45,10 @@ class EventGenerator():
         return self._sample_from_distribution(locs, self.scale)
     
 class BinomialEventGenerator(EventGenerator):
+    def __init__(self, features_map: Dict[str, object], scale=None, baseline: float=0, random_seed: int=None, logit_output: bool=True) -> None:
+        super().__init__(features_map, scale, baseline, random_seed)
+        self.logit_output = logit_output
+
     def _sample_from_distribution(self, locs: np.ndarray, scale: float=None) -> np.ndarray:
         """
         Applies the mapping of features->value for each row in the dataframe and sum all contributions together.
@@ -52,8 +56,7 @@ class BinomialEventGenerator(EventGenerator):
         'scale' represents the number of trials
         """
         scale = 1 if scale is None else scale
-
-        probabilities = logistic.cdf(locs)
+        probabilities = logistic.cdf(locs) if self.logit_output else locs
         return self.rng.binomial(scale, probabilities)
     
 class LognormalEventGenerator(EventGenerator):
