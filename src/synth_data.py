@@ -13,13 +13,13 @@ class LTVSyntheticData:
 
     Parameters:
     ----------------------------------------------------------------------------
-    n_users: int, how many users there will be in your data
-    share_payers: float, share of active users or share of users, who make
+    n_customers: int, how many customers there will be in your data
+    share_payers: float, share of active customers or share of customers, who make
                          purchases value must be in the interval (0,1]
     n_days: int, how many days is in data sample
-    share_high_payers: float, share of active users, who has purchases higher
+    share_high_payers: float, share of active customers, who has purchases higher
                                than others
-    share_low_payers: float, share of active users, who has purchases lower
+    share_low_payers: float, share of active customers, who has purchases lower
                              than others
     date_start: str, the minimum date in the sample data in format '%Y-%m-%d'
     is_subscr: bool, do you want to generate subscribtion data? (otherwise it
@@ -42,7 +42,7 @@ class LTVSyntheticData:
     ----------------------------------------------------------------------------
     """
     def __init__(self,
-                n_users: int = 10000,
+                n_customers: int = 10000,
                 share_payers: float = 0.2,
                 n_days: int = 365,
                 share_high_payers: float = 0.2,
@@ -56,7 +56,7 @@ class LTVSyntheticData:
                 payment_for_each_subscr_option: Tuple[float] = (1.0, 5.0, 9.0),
                 days_for_each_subscr_option: Tuple[int] = (30, 60, 90)
                 ):
-        self.n_users = n_users
+        self.n_customers = n_customers
         self.share_payers = share_payers
         self.n_days = n_days
         self.share_high_payers = share_high_payers
@@ -75,7 +75,7 @@ class LTVSyntheticData:
         self._high_payers = None
         self._low_payers = None
         self._mid_payers = None
-        self._ancor_table = None
+        self._customers_table = None
 
         self._check_inputs()
 
@@ -105,39 +105,39 @@ class LTVSyntheticData:
                         f'Parameters {name} must  be more than 0')
 
     def _generate_uuids(self) -> None:
-        """Generate uuids according to n_users parameter"""
-        self._uuids = [f'#{x}' for x in np.arange(self.n_users)]
+        """Generate uuids according to n_customers parameter"""
+        self._uuids = [f'#{x}' for x in np.arange(self.n_customers)]
 
-    def get_ancor_table(self, force_update: bool = False) -> pd.DataFrame:
-        """Create ancor table
+    def get_customers_table(self, force_update: bool = False) -> pd.DataFrame:
+        """Create customers table
 
         Parameters:
         ------------------------------------------------------------------------
-        force_update: bool, do you want to force update the ancor table?
+        force_update: bool, do you want to force update the customers table?
         ------------------------------------------------------------------------
 
         Returns
         ------------------------------------------------------------------------
-        pd.DataFrame(columns=[UUID, timestamp, ancor_event_name]
+        pd.DataFrame(columns=[UUID, timestamp, customers_event_name]
                      ): table with registration date
         ------------------------------------------------------------------------
         """
-        if self._ancor_table is None or force_update:
+        if self._customers_table is None or force_update:
             registration_day = np.random.choice(np.arange(self.n_days),
-                                                size=self.n_users)
-            self._ancor_table = pd.DataFrame(
+                                                size=self.n_customers)
+            self._customers_table = pd.DataFrame(
                 {'UUID': self._uuids, 'timestamp': registration_day})
-            self._ancor_table['ancor_event_name'] = 'registration'
-            self._ancor_table['timestamp'] = (
+            self._customers_table['customers_event_name'] = 'registration'
+            self._customers_table['timestamp'] = (
                 pd.to_datetime(self.date_start) + pd.to_timedelta(
-                    self._ancor_table['timestamp'], unit='D'))
-        return self._ancor_table
+                    self._customers_table['timestamp'], unit='D'))
+        return self._customers_table
 
-    def _define_active_users(self) -> None:
+    def _define_active_customers(self) -> None:
         """Choose active_uuid, high_payers, mid_payers and low_payers"""
         self._active_uuid = np.random.choice(
             self._uuids,
-            size=int(self.n_users*self.share_payers),
+            size=int(self.n_customers*self.share_payers),
             replace=False)
         self._high_payers = np.random.choice(
             self._active_uuid,
@@ -283,9 +283,9 @@ class LTVSyntheticData:
         ------------------------------------------------------------------------
         """
 
-        if self._ancor_table is None:
-            raise Exception('Run get_ancor_table method first')
-        self._define_active_users()
+        if self._customers_table is None:
+            raise Exception('Run get_customers_table method first')
+        self._define_active_customers()
         purchases = pd.DataFrame(columns=['UUID',
                                           'timestamp',
                                           'purchase_value'])
@@ -295,21 +295,21 @@ class LTVSyntheticData:
         if self.is_subscr:
             high_payers_payments = self._get_payments_subscr(
                 active_uuid=self._high_payers,
-                registration_table=self._ancor_table,
+                registration_table=self._customers_table,
                 days_for_each_subscr_option=self.days_for_each_subscr_option,
                 value_for_each_subscr_option=self.payment_for_each_subscr_option,
                 p_0=0.1,
                 max_day=max_day)
             mid_payers_payments = self._get_payments_subscr(
                 active_uuid=self._mid_payers,
-                registration_table=self._ancor_table,
+                registration_table=self._customers_table,
                 days_for_each_subscr_option=self.days_for_each_subscr_option,
                 value_for_each_subscr_option=self.payment_for_each_subscr_option,
                 p_0=0.3,
                 max_day=max_day)
             low_payers_payments = self._get_payments_subscr(
                 active_uuid=self._low_payers,
-                registration_table=self._ancor_table,
+                registration_table=self._customers_table,
                 days_for_each_subscr_option=self.days_for_each_subscr_option,
                 value_for_each_subscr_option=self.payment_for_each_subscr_option,
                 p_0=0.6,
@@ -323,7 +323,7 @@ class LTVSyntheticData:
                 std_for_value=self.std_for_value,
                 active_uuid=self._mid_payers,
                 max_day=max_day,
-                registration_table=self._ancor_table)
+                registration_table=self._customers_table)
             high_payers_payments = self._get_purchases(
                 mean_for_day_number=self.mean_for_day_number*2,
                 std_for_day_number=self.std_for_day_number*2**0.5,
@@ -331,7 +331,7 @@ class LTVSyntheticData:
                 std_for_value=self.std_for_value*2**0.5,
                 active_uuid=self._high_payers,
                 max_day=max_day,
-                registration_table=self._ancor_table)
+                registration_table=self._customers_table)
             low_payers_payments = self._get_purchases(
                 mean_for_day_number=self.mean_for_day_number*0.5,
                 std_for_day_number=self.std_for_day_number*0.5**0.5,
@@ -339,12 +339,12 @@ class LTVSyntheticData:
                 std_for_value=self.std_for_value*0.5**0.5,
                 active_uuid=self._low_payers,
                 max_day=max_day,
-                registration_table=self._ancor_table)
+                registration_table=self._customers_table)
             purchases = pd.concat([purchases, high_payers_payments, mid_payers_payments, low_payers_payments], ignore_index=True)
         purchases['event_name'] = 'purchase'
 
         purchases['registration_day'] = purchases['UUID'].map(
-            self._ancor_table.set_index('UUID')['timestamp'])
+            self._customers_table.set_index('UUID')['timestamp'])
         purchases = purchases[purchases['timestamp'] >=
                               purchases['registration_day']]
         purchases = purchases.drop(columns=['registration_day'])
@@ -354,18 +354,18 @@ class LTVSyntheticData:
         return purchases
 
     def generarte_datasets(self) -> (pd.DataFrame, pd.DataFrame):
-        """Create ancor table and table with purchases according to
+        """Create customers table and table with purchases according to
         registration table
 
         Returns
         ------------------------------------------------------------------------
         (
-            pd.DataFrame(columns=[UUID, ancor_event_name, timestamp]),
+            pd.DataFrame(columns=[UUID, customers_event_name, timestamp]),
             pd.DataFrame(columns=[UUID, event_name, timestamp,
                                   purchase_value])
         ): table with registration date and table with purchases
         ------------------------------------------------------------------------
         """
-        ancor_table = self.get_ancor_table(force_update=True)
+        customers_table = self.get_customers_table(force_update=True)
         purchases = self.get_purchases()
-        return ancor_table, purchases
+        return customers_table, purchases
