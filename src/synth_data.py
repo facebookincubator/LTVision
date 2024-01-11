@@ -2,10 +2,9 @@
 
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
-import numpy as np
 import pandas as pd
+import numpy as np
 from typing import Tuple
-
 
 class LTVSyntheticData:
     """This class helps to create sample of random data which can be used in
