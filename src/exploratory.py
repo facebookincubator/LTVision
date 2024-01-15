@@ -11,6 +11,7 @@ from sklearn.metrics import accuracy_score, r2_score
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+from pandas.api.types import is_datetime64_any_dtype , is_object_dtype, is_any_real_numeric_dtype, is_dtype_equal
 import plotly.graph_objects as go
 import seaborn as sns
 from src.graph import Graph
@@ -44,10 +45,47 @@ class LTVexploratory:
         self.value_col = value_col
         self.segment_feature_cols = [] if segment_feature_cols is None else segment_feature_cols
         # run auxiliar methods
+        self._validate_datasets()
         self._prep_df()
         self._prep_LTV_periods()
         self._prep_payer_types()
 
+    def _validate_datasets(self) -> None:
+        """
+        This method perform the following checks for the input datasets:
+        customers dataset:
+            - 
+        customers dataset:
+            - customer-id column is string or object type
+            - time of event column is datetime
+        
+        events dataset:
+            - customer-id column is string or object type
+            - event name column is string or object type
+            - time of event column is datetime
+            - purchase value is int or float type
+
+        consistency checks
+            - customer-id columns of both datasets are of the same type
+            - time of event columns of both datasets are of the same type
+        """
+
+        # customers dataset checks
+        assert((isinstance(
+            self.data_customers[self.uuid_col].dtype, pd.StringDtype) or 
+            is_object_dtype(self.data_customers[self.uuid_col]))) , f"The column [{self.uuid_col}] referencing to the customer-id in the customers dataset was expected to be of data pd.StringDtype or object. But it is of type {self.data_ancor[self.uuid_col].dtype}"
+        assert(is_datetime64_any_dtype(self.data_customers[self.registration_time_col])), f"The column [{self.registration_time_col}] referencing to the registrationtime in the customers dataset was expected to be of type [datime]. But it is of type {self.data_ancor[self.registration_time_col].dtype}"
+
+        # events dataset checks
+        assert((isinstance(
+            self.data_events[self.uuid_col].dtype, pd.StringDtype) or 
+            is_object_dtype(self.data_events[self.uuid_col]))) , f"The column [{self.uuid_col}] referencing to the customer-id in the events dataset was expected to be of data pd.StringDtype or object. But it is of type {self.data_ancor[self.uuid_col].dtype}"
+        assert(is_datetime64_any_dtype(self.data_events[self.event_time_col])) , f"The column [{self.event_time_col}] referencing to the registrationtime in the events dataset was expected to be of type [datime]. But it is of type {self.data_ancor[self.event_time_col].dtype}"
+        assert(is_any_real_numeric_dtype(self.data_events[self.value_col])) , f"The column [{self.value_col}] referencing value of a transaction in the events dataset was expected to be of numeric. But it is of type {self.data_ancor[self.value_col].dtype}"
+
+        # consistency checks
+        assert(is_dtype_equal(self.data_customers[self.uuid_col], self.data_events[self.uuid_col])), f"The customer-id columns of the two input datasets are not the same. In the customers dataset it is of type [{self.data_ancor[self.uuid_col].dtype}], while in the events dataset it is of type [{self.data_ancor[self.uuid_col].dtype}]"
+        assert(is_dtype_equal(self.data_customers[self.registration_time_col], self.data_events[self.event_time_col])), f"The timestamp columns of the two input datasets are not the same. In the customers dataset it is of type [{self.data_ancor[self.registration_time_col].dtype}], while in the events dataset it is of type [{self.data_ancor[self.event_time_col].dtype}]"
 
 
     def _prep_df(self) -> None:
@@ -170,7 +208,7 @@ class LTVexploratory:
 
         # Get uuids from each input data
         customers_uuids = pd.DataFrame({self.uuid_col: self.data_customers[self.uuid_col].unique()})
-        customers_uuids["customers"] = "Present in Users"
+        customers_uuids["customers"] = "Present in Customers"
         events_uuids = pd.DataFrame({self.uuid_col: self.data_events[self.uuid_col].unique()})
         events_uuids["events"] = "Present in Events"
 
@@ -186,10 +224,10 @@ class LTVexploratory:
         complete_data = pd.DataFrame(
             {
                 "customers": [
-                    "Present in Users",
-                    "Not in Users",
-                    "Present in Users",
-                    "Not in Users",
+                    "Present in Customers",
+                    "Not in Customers",
+                    "Present in Customers",
+                    "Not in Customers",
                 ],
                 "events": [
                     "Present in Events",
@@ -413,7 +451,7 @@ class LTVexploratory:
             customer_revenue_data,
             x_axis='days_since_install',
             y_axis=optimization_window,
-            xlabel='Days Since User Registration',
+            xlabel='Days Since Customer Registration',
             ylabel='Pearson Correlation',
             title=f'Correlation (Y) between revenue until {optimization_window} after registration with revenue until (X) days after registration'
             )
@@ -492,7 +530,7 @@ class LTVexploratory:
         ].min()
         days_before_first_purchase.hist(ax=ax, bins=50)
         plt.title("Days between registration and the first purchase")
-        plt.ylabel("Users")
+        plt.ylabel("Customers")
         plt.xlabel("Days")
         plt.show()
         pd.set_option("display.float_format", lambda x: "%.1f" % x)
@@ -517,7 +555,7 @@ class LTVexploratory:
         )
         days_after_first_purchase.hist(ax=ax, bins=50)
         plt.title("Days between the first purchase and the next one")
-        plt.ylabel("Users")
+        plt.ylabel("Customers")
         plt.xlabel("Days")
         plt.show()
         pd.set_option("display.float_format", lambda x: "%.1f" % x)
