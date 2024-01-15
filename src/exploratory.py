@@ -11,6 +11,7 @@ from sklearn.metrics import accuracy_score, r2_score
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+from pandas.api.types import is_datetime64_any_dtype , is_object_dtype, is_any_real_numeric_dtype, is_dtype_equal
 import plotly.graph_objects as go
 import seaborn as sns
 from src.graph import Graph
@@ -22,7 +23,7 @@ class LTVexploratory:
 
     def __init__(
         self,
-        data_ancor: pd.DataFrame,
+        data_customers: pd.DataFrame,
         data_events: pd.DataFrame,
         uuid_col: str = 'UUID',
         registration_time_col: str = "timestamp_registration",
@@ -31,7 +32,7 @@ class LTVexploratory:
         value_col: str = "purchase_value",
         segment_feature_cols: List[str] = None,
     ):
-        self.data_ancor = data_ancor
+        self.data_customers = data_customers
         self.data_events = data_events
         self._period = 7
         self._period_for_ltv = 7 * 10
@@ -44,26 +45,63 @@ class LTVexploratory:
         self.value_col = value_col
         self.segment_feature_cols = [] if segment_feature_cols is None else segment_feature_cols
         # run auxiliar methods
+        self._validate_datasets()
         self._prep_df()
         self._prep_LTV_periods()
         self._prep_payer_types()
 
+    def _validate_datasets(self) -> None:
+        """
+        This method perform the following checks for the input datasets:
+        customers dataset:
+            - 
+        customers dataset:
+            - customer-id column is string or object type
+            - time of event column is datetime
+        
+        events dataset:
+            - customer-id column is string or object type
+            - event name column is string or object type
+            - time of event column is datetime
+            - purchase value is int or float type
+
+        consistency checks
+            - customer-id columns of both datasets are of the same type
+            - time of event columns of both datasets are of the same type
+        """
+
+        # customers dataset checks
+        assert((isinstance(
+            self.data_customers[self.uuid_col].dtype, pd.StringDtype) or 
+            is_object_dtype(self.data_customers[self.uuid_col]))) , f"The column [{self.uuid_col}] referencing to the customer-id in the customers dataset was expected to be of data pd.StringDtype or object. But it is of type {self.data_ancor[self.uuid_col].dtype}"
+        assert(is_datetime64_any_dtype(self.data_customers[self.registration_time_col])), f"The column [{self.registration_time_col}] referencing to the registrationtime in the customers dataset was expected to be of type [datime]. But it is of type {self.data_ancor[self.registration_time_col].dtype}"
+
+        # events dataset checks
+        assert((isinstance(
+            self.data_events[self.uuid_col].dtype, pd.StringDtype) or 
+            is_object_dtype(self.data_events[self.uuid_col]))) , f"The column [{self.uuid_col}] referencing to the customer-id in the events dataset was expected to be of data pd.StringDtype or object. But it is of type {self.data_ancor[self.uuid_col].dtype}"
+        assert(is_datetime64_any_dtype(self.data_events[self.event_time_col])) , f"The column [{self.event_time_col}] referencing to the registrationtime in the events dataset was expected to be of type [datime]. But it is of type {self.data_ancor[self.event_time_col].dtype}"
+        assert(is_any_real_numeric_dtype(self.data_events[self.value_col])) , f"The column [{self.value_col}] referencing value of a transaction in the events dataset was expected to be of numeric. But it is of type {self.data_ancor[self.value_col].dtype}"
+
+        # consistency checks
+        assert(is_dtype_equal(self.data_customers[self.uuid_col], self.data_events[self.uuid_col])), f"The customer-id columns of the two input datasets are not the same. In the customers dataset it is of type [{self.data_ancor[self.uuid_col].dtype}], while in the events dataset it is of type [{self.data_ancor[self.uuid_col].dtype}]"
+        assert(is_dtype_equal(self.data_customers[self.registration_time_col], self.data_events[self.event_time_col])), f"The timestamp columns of the two input datasets are not the same. In the customers dataset it is of type [{self.data_ancor[self.registration_time_col].dtype}], while in the events dataset it is of type [{self.data_ancor[self.event_time_col].dtype}]"
 
 
     def _prep_df(self) -> None:
-        ancor_uuid = set(self.data_ancor[self.uuid_col])
+        customers_uuid = set(self.data_customers[self.uuid_col])
         event_uuid = set(self.data_events[self.uuid_col])
         uuid_stat = pd.DataFrame(columns=['table', 'number_uuid'])
-        uuid_stat['table'] = ['ancor only', 'event only', 'ancor & event']
-        uuid_stat['number_uuid'] = [len(ancor_uuid - event_uuid), len(event_uuid - ancor_uuid), len(event_uuid & ancor_uuid)]
+        uuid_stat['table'] = ['customers only', 'event only', 'customers & event']
+        uuid_stat['number_uuid'] = [len(customers_uuid - event_uuid), len(event_uuid - customers_uuid), len(event_uuid & customers_uuid)]
         uuid_stat['share_uuid'] = uuid_stat['number_uuid'].map(lambda x: f"{x/uuid_stat['number_uuid'].sum():.2%}")
         display(uuid_stat)
 
 
-        # Join two tables, I will analyse only data in event table, because we can't do anything with users who don't have purchase histiry
+        # Join two tables, I will analyse only data in event table, because we can't do anything with customers who don't have purchase histiry
 
 
-        df = self.data_ancor.merge(self.data_events, on=self.uuid_col, how='inner', suffixes=('_registration', '_event'))
+        df = self.data_customers.merge(self.data_events, on=self.uuid_col, how='inner', suffixes=('_registration', '_event'))
         data_upload_date = df[self.event_time_col].max()
         df['max_days_for_ltv'] = (data_upload_date - df[self.registration_time_col]).dt.days + 1
         df['year-month'] = df[self.event_time_col].dt.year.astype(str) + '-' + ("0" + df[self.event_time_col].dt.month.astype(str)).str[-2:]
@@ -80,10 +118,10 @@ class LTVexploratory:
         self._df = df
 
 
-        # Left join users and events data, so that you have a dataframe with all users and their events (if no event, then timestamp is null)
+        # Left join customers and events data, so that you have a dataframe with all customers and their events (if no event, then timestamp is null)
         # just select some columns to make it easier to understand what is the information that is used and avoid join complications caused by the name of other columns
         self.joined_df = pd.merge(
-            self.data_ancor,
+            self.data_customers,
             self.data_events,
             on=self.uuid_col,
             how="left",
@@ -112,7 +150,7 @@ class LTVexploratory:
         periods = np.append([1,3,5], np.arange(7, 7*30+7, 7))
         for period in periods:
             self._df[period] = self._df['purchase_value'] *(self._df['days_between_purchase_and_reg'] <= period)
-            # if uuid doesn't have data for calculating ltv for this period (for example if our user joined only 1 day ago, he doesn't have enough data in order to calculate ltv for 7 days), I want to see None in this cell, because it will be fair
+            # if uuid doesn't have data for calculating ltv for this period (for example if our customer joined only 1 day ago, he doesn't have enough data in order to calculate ltv for 7 days), I want to see None in this cell, because it will be fair
             self._df.loc[self._df['max_days_for_ltv'] < period, period] = None
         ltv_periods = self._df.groupby([self.uuid_col])[periods].sum()
         # function sum converts None to 0, so I use proxy function which set None where is necessary
@@ -127,22 +165,22 @@ class LTVexploratory:
             while len(quatile_for_type_of_payers) < 5:
                 quatile_for_type_of_payers = np.append(quatile_for_type_of_payers, max(quatile_for_type_of_payers) + 1)
             payers_types[col] = pd.cut(self._ltv_periods[col], bins=quatile_for_type_of_payers,
-            labels=['0.users_with_zero_purchases', '1.low_payers', '2.mid_payers', '3.high_payers'], include_lowest=True)
+            labels=['0.customers_with_zero_purchases', '1.low_payers', '2.mid_payers', '3.high_payers'], include_lowest=True)
         self._payer_types = payers_types
 
     # Analysis Plots
     def summary(self):
-        data_ancor = self.joined_df[
+        data_customers = self.joined_df[
             [self.uuid_col, self.registration_time_col]
         ].drop_duplicates()
         print(
             f"""
-            table:         data_ancor
-            date start:    {data_ancor[self.registration_time_col].min()}
-            date end:      {data_ancor[self.registration_time_col].max()}
-            period:        {(data_ancor[self.registration_time_col].max()-data_ancor[self.registration_time_col].min()).days/365:.2f} years
-            customers:     {data_ancor[self.uuid_col].nunique():,d}
-            events:        {data_ancor.shape[0]:,d}
+            table:         data_customers
+            date start:    {data_customers[self.registration_time_col].min()}
+            date end:      {data_customers[self.registration_time_col].max()}
+            period:        {(data_customers[self.registration_time_col].max()-data_customers[self.registration_time_col].min()).days/365:.2f} years
+            customers:     {data_customers[self.uuid_col].nunique():,d}
+            events:        {data_customers.shape[0]:,d}
             """
         )
 
@@ -156,40 +194,40 @@ class LTVexploratory:
             customers:     {data_events[self.uuid_col].nunique():,d}
             events:        {data_events.shape[0]:,d}
             unique events: {data_events[self.event_name_col].nunique():,d}
-            events / user: {(data_events.shape[0] / data_events[self.uuid_col].nunique()):.2f}
+            events / customer: {(data_events.shape[0] / data_events[self.uuid_col].nunique()):.2f}
             """
         )
 
     # All plot methods
-    def plot_users_intersection(self):
+    def plot_customers_intersection(self):
         """
-        Plot the interection between users in the two input data
-        We expect that all users in events data are also in ancor data.
-        The inverse can be true, as there may be users who never sent an event
+        Plot the interection between customers in the two input data
+        We expect that all customers in events data are also in customers data.
+        The inverse can be true, as there may be customers who never sent an event
         """
 
         # Get uuids from each input data
-        ancor_uuids = pd.DataFrame({self.uuid_col: self.data_ancor[self.uuid_col].unique()})
-        ancor_uuids["ancor"] = "Present in Ancor"
+        customers_uuids = pd.DataFrame({self.uuid_col: self.data_customers[self.uuid_col].unique()})
+        customers_uuids["customers"] = "Present in Customers"
         events_uuids = pd.DataFrame({self.uuid_col: self.data_events[self.uuid_col].unique()})
         events_uuids["events"] = "Present in Events"
 
-        # Calculate how many users are in each category
-        cross_uuid = pd.merge(ancor_uuids, events_uuids, on=self.uuid_col, how="outer")
-        cross_uuid["ancor"] = cross_uuid["ancor"].fillna("Not in Ancor")
+        # Calculate how many customers are in each category
+        cross_uuid = pd.merge(customers_uuids, events_uuids, on=self.uuid_col, how="outer")
+        cross_uuid["customers"] = cross_uuid["customers"].fillna("Not in customers")
         cross_uuid["events"] = cross_uuid["events"].fillna("Not in Events")
         cross_uuid = (
-            cross_uuid.groupby(["ancor", "events"])[self.uuid_col].count().reset_index()
+            cross_uuid.groupby(["customers", "events"])[self.uuid_col].count().reset_index()
         )
 
         # Create a dataframe containing all combinations for the visualization
         complete_data = pd.DataFrame(
             {
-                "ancor": [
-                    "Present in Ancor",
-                    "Not in Ancor",
-                    "Present in Ancor",
-                    "Not in Ancor",
+                "customers": [
+                    "Present in Customers",
+                    "Not in Customers",
+                    "Present in Customers",
+                    "Not in Customers",
                 ],
                 "events": [
                     "Present in Events",
@@ -200,38 +238,38 @@ class LTVexploratory:
             }
         )
         complete_data = pd.merge(
-            complete_data, cross_uuid, on=["ancor", "events"], how="left"
+            complete_data, cross_uuid, on=["customers", "events"], how="left"
         )
         complete_data = complete_data.fillna(0)
         complete_data[self.uuid_col] = complete_data[self.uuid_col]/np.sum(complete_data[self.uuid_col])
-        return self.graph.grid_plot(complete_data, "ancor", "events", self.uuid_col)
+        return self.graph.grid_plot(complete_data, "customers", "events", self.uuid_col)
 
     def plot_purchases_distribution(
         self, days_limit: int, truncate_share: float = 0.99
     ):
         """
         Plots an histogram of the number of people by how many purchases they had until [days_limit] after their registration
-        We need [days_limit] to ensure that we only select users with the same opportunity window (i.e. all users are at least
+        We need [days_limit] to ensure that we only select customers with the same opportunity window (i.e. all customers are at least
         [days_limit] days old at the time the data was collected).
         )
         Input
             days_limit: number of days of the event since registration.
-            truncate_share: share of total users/revenue until where the plot shows values
+            truncate_share: share of total customers/revenue until where the plot shows values
         """
-        # Select only users that are at least [days_limit] days old
+        # Select only customers that are at least [days_limit] days old
         end_events_date = self.joined_df[self.event_time_col].max()
         data = self.joined_df[
             (end_events_date - self.joined_df[self.registration_time_col]).dt.days
             >= days_limit
         ].copy()
 
-        # Remove users who never had a purchase and ensure all users have the same opportunity window
+        # Remove customers who never had a purchase and ensure all customers have the same opportunity window
         data = data[
             (data[self.event_time_col] - data[self.registration_time_col]).dt.days
             <= days_limit
         ]
 
-        # Count how many purchase users had (defined by value > 0) and then how many users are in each place
+        # Count how many purchase customers had (defined by value > 0) and then how many customers are in each place
         data = data[data[self.value_col] > 0]
         data = (
             data.groupby(self.uuid_col)[self.value_col]
@@ -245,17 +283,17 @@ class LTVexploratory:
         data["sum"] = data["sum"] / data["sum"].sum()
         data["count"] = data["count"] / data["count"].sum()
         # Find treshold truncation
-        users_truncation = data["count"].cumsum() <= truncate_share
+        customers_truncation = data["count"].cumsum() <= truncate_share
         value_truncation = data["sum"].cumsum() <= truncate_share
-        # plot distribution by users and by revenue
+        # plot distribution by customers and by revenue
         self.graph.bar_plot(
-            data[users_truncation],
+            data[customers_truncation],
             x_axis="purchases",
             y_axis="count",
             xlabel="Number of purchases",
             ylabel="Share of customers",
             y_format="%",
-            title=f"Distribution of paying users (Y, %) by number of purchases of each user until {days_limit} days after registration  (X)",
+            title=f"Distribution of paying customers (Y, %) by number of purchases of each customer until {days_limit} days after registration  (X)",
         )
         self.graph.bar_plot(
             data[value_truncation],
@@ -264,7 +302,7 @@ class LTVexploratory:
             xlabel="Number of purchases",
             ylabel="Share of value",
             y_format="%",
-            title=f"Distribution of value (Y, %) by number of purchases of each user until {days_limit} days after registration (X)",
+            title=f"Distribution of value (Y, %) by number of purchases of each customer until {days_limit} days after registration (X)",
         )
 
 
@@ -272,27 +310,27 @@ class LTVexploratory:
         self, days_limit: int, granularity: int=1000
     ):
         """
-        Plots the - cumulative - share of revenue (Y) versus the share of users (X), with users ordered by revenue in descending order
-        This plots how concentrated the revenue is. Base of users is only of spending users (so users who never spent anything are ignored)
+        Plots the - cumulative - share of revenue (Y) versus the share of customers (X), with customers ordered by revenue in descending order
+        This plots how concentrated the revenue is. Base of customers is only of spending customers (so customers who never spent anything are ignored)
         )
         Input
             days_limit: number of days of the event since registration.
             granularity: number of steps in the plot
         """
-        # Select only users that are at least [days_limit] days old
+        # Select only customers that are at least [days_limit] days old
         end_events_date = self.joined_df[self.event_time_col].max()
         data = self.joined_df[
             (end_events_date - self.joined_df[self.registration_time_col]).dt.days
             >= days_limit
         ].copy()
 
-        # Remove users who never had a purchase and ensure all users have the same opportunity window
+        # Remove customers who never had a purchase and ensure all customers have the same opportunity window
         data = data[
             (data[self.event_time_col] - data[self.registration_time_col]).dt.days
             <= days_limit
         ]
 
-        # Count how many purchase users had (defined by value > 0) and then how many users are in each place
+        # Count how many purchase customers had (defined by value > 0) and then how many customers are in each place
         data = data[data[self.value_col] > 0]
         data = (
             data.groupby(self.uuid_col)[self.value_col].sum()
@@ -300,22 +338,22 @@ class LTVexploratory:
             .sort_values(self.value_col, ascending=False)
         )
 
-        # Calculate total revenue and group users together based on the granilarity
+        # Calculate total revenue and group customers together based on the granilarity
         total_revenue = data[self.value_col].sum()
-        total_users = data.shape[0]
-        data['cshare_users'] = [(i+1)/total_users for i in range(total_users)]
+        total_customers = data.shape[0]
+        data['cshare_customers'] = [(i+1)/total_customers for i in range(total_customers)]
         data['cshare_revenue'] = data[self.value_col].cumsum() / total_revenue
-        data['group'] = data['cshare_users'].apply(lambda x: np.ceil(x*granularity))
+        data['group'] = data['cshare_customers'].apply(lambda x: np.ceil(x*granularity))
         data = (
             data
-            .groupby("group")[["cshare_users", "cshare_revenue"]]
+            .groupby("group")[["cshare_customers", "cshare_revenue"]]
             .max()
             .reset_index()
         )
 
         self.graph.line_plot(
             data,
-            x_axis="cshare_users",
+            x_axis="cshare_customers",
             y_axis="cshare_revenue",
             xlabel="Share of paying customers",
             ylabel="Share of revenue",
@@ -324,17 +362,17 @@ class LTVexploratory:
             title=f"Share of all revenue of the first {days_limit} days after customer registration (Y) versus share of paying customers",
         )
 
-    def plot_user_histogram_per_conversion_day(
+    def plot_customers_histogram_per_conversion_day(
             self,
             days_limit: int,
             optimization_window: int=7,
             truncate_share = 1.0) -> None:
         """
-        Plots the distribution of all users that converted until (days_limit) days after registration per conversion day
+        Plots the distribution of all customers that converted until (days_limit) days after registration per conversion day
         Inputs:
             days_limit: number of days of the event since registration.
-            optimization_window: the number of days since registration of a user that matters for the optimization of campaigns
-            truncate_share: the total share of purchasing users that the histogram includes
+            optimization_window: the number of days since registration of a customer that matters for the optimization of campaigns
+            truncate_share: the total share of purchasing customers that the histogram includes
         """
 
         end_events_date = self.joined_df[self.event_time_col].max()
@@ -343,7 +381,7 @@ class LTVexploratory:
             >= days_limit
         ].copy()
 
-        # Remove users who never had a purchase and ensure all users have the same opportunity window
+        # Remove customers who never had a purchase and ensure all customers have the same opportunity window
         data = data[data[self.value_col] > 0]
         data['dsi'] = ((data[self.event_time_col] - data[self.registration_time_col]).dt.days).fillna(0)
         data = data[data['dsi'] <= days_limit]
@@ -359,12 +397,12 @@ class LTVexploratory:
             .reset_index()
         )
 
-        # calculate the share of users instead of absolute numbers and numbers for the title
+        # calculate the share of customers instead of absolute numbers and numbers for the title
         data[self.uuid_col]  = data[self.uuid_col] / data[self.uuid_col].sum()
         data = data[data[self.uuid_col].cumsum() < truncate_share]
 
         share_customers_within_window = data[data['dsi'] <= optimization_window][self.uuid_col].sum()
-        title = f"Initial Purchase Cycle\n{100*share_customers_within_window:.1f}% of first purchases happened within the first {optimization_window} days since registration\n\nShare of paying users (Y) versus conversion days since registration (X)"
+        title = f"Initial Purchase Cycle\n{100*share_customers_within_window:.1f}% of first purchases happened within the first {optimization_window} days since registration\n\nShare of paying customers (Y) versus conversion days since registration (X)"
 
         self.graph.bar_plot(
                     data,
@@ -380,47 +418,47 @@ class LTVexploratory:
         days_limit: int,
         optimization_window: int=7) -> None:
         """
-        Calculates and plots correlation between user-level revenue
+        Calculates and plots correlation between customer-level revenue
         The correlation is between the revenue in the first [optimization_window] days after registration and the following [days_limit - optimization_window] days
-        This can be useful to decide what number of days should define the 'Lifetime Value Window' of a user
+        This can be useful to decide what number of days should define the 'Lifetime Value Window' of a customer
         
         Inputs
              - days_limit: max number of days after registration to be considered in the analysis
              - optimization_window: number of days from registration that the optimization of the marketing campaigns are operated
         """
-        # Filters users to ensure that all have the same opportunity to generate revenue until [days_limits] after registration
+        # Filters customers to ensure that all have the same opportunity to generate revenue until [days_limits] after registration
         end_events_date = self.joined_df[self.event_time_col].max()
         cohort_filter = (end_events_date - self.joined_df[self.registration_time_col]).dt.days >= days_limit # ensure to only gets cohorts that are 'days_limit' old
-        opportunity_filter = (self.joined_df[self.event_time_col] - self.joined_df[self.registration_time_col]).dt.days <= days_limit # only consider the first 'days_limit' days of a user
-        user_revenue_data = self.joined_df[cohort_filter & opportunity_filter].copy()
+        opportunity_filter = (self.joined_df[self.event_time_col] - self.joined_df[self.registration_time_col]).dt.days <= days_limit # only consider the first 'days_limit' days of a customer
+        customer_revenue_data = self.joined_df[cohort_filter & opportunity_filter].copy()
 
-        # Create a new dataframe for cross join, so we can ensure that all users have (days_limit + 1) days to calculate correlation
+        # Create a new dataframe for cross join, so we can ensure that all customers have (days_limit + 1) days to calculate correlation
         days_data = pd.DataFrame({'days_since_install': np.linspace(optimization_window, days_limit, days_limit - optimization_window + 1).astype(np.int32)})
         days_data['key'] = 1
-        user_revenue_data['key'] = 1
-        user_revenue_data = pd.merge(user_revenue_data, days_data, on='key').drop('key', axis=1)
+        customer_revenue_data['key'] = 1
+        customer_revenue_data = pd.merge(customer_revenue_data, days_data, on='key').drop('key', axis=1)
 
-        # Calculates the revenue of each user until N days after registration (as the user doesn't necessarily spend on all days)
-        user_revenue_data[self.value_col] = (user_revenue_data['days_since_registration'] <= user_revenue_data['days_since_install']) * user_revenue_data[self.value_col]
-        user_revenue_data = (
-            user_revenue_data
+        # Calculates the revenue of each customer until N days after registration (as the customer doesn't necessarily spend on all days)
+        customer_revenue_data[self.value_col] = (customer_revenue_data['days_since_registration'] <= customer_revenue_data['days_since_install']) * customer_revenue_data[self.value_col]
+        customer_revenue_data = (
+            customer_revenue_data
             .groupby([self.uuid_col, 'days_since_install'])
             [self.value_col].sum().reset_index()
         )
         # Calculate correlation, extract the correlation only for the 'early revenue' and plot it
-        user_revenue_data = user_revenue_data.pivot(index=self.uuid_col, columns='days_since_install', values=self.value_col).corr().reset_index()
+        customer_revenue_data = customer_revenue_data.pivot(index=self.uuid_col, columns='days_since_install', values=self.value_col).corr().reset_index()
         self.graph.line_plot(
-            user_revenue_data,
+            customer_revenue_data,
             x_axis='days_since_install',
             y_axis=optimization_window,
-            xlabel='Days Since User Registration',
+            xlabel='Days Since Customer Registration',
             ylabel='Pearson Correlation',
             title=f'Correlation (Y) between revenue until {optimization_window} after registration with revenue until (X) days after registration'
             )
 
-    def plot_paying_users_flow(self, days_limit: int, early_limit: int, spending_breaks: Dict[str, float]):
+    def plot_paying_customers_flow(self, days_limit: int, early_limit: int, spending_breaks: Dict[str, float]):
         """
-        Plots the flow of users from early spending class to late spending class
+        Plots the flow of customers from early spending class to late spending class
         Inputs:
             days_limit: number of days of the event since registration used to define the late spending class
             early_limit: number of days of the event since registration that is considered 'early'. Usually refers to optimization window of marketing platforms
@@ -432,20 +470,20 @@ class LTVexploratory:
             return list(spending_breaks.keys())[key]
 
 
-        # Select only users that are at least [days_limit] days old
+        # Select only customers that are at least [days_limit] days old
         end_events_date = self.joined_df[self.event_time_col].max()
         data = self.joined_df[
             (end_events_date - self.joined_df[self.registration_time_col]).dt.days
             >= days_limit
         ].copy()
 
-        # Remove users who never had a purchase and ensure all users have the same opportunity window
+        # Remove customers who never had a purchase and ensure all customers have the same opportunity window
         data = data[
             (data[self.event_time_col] - data[self.registration_time_col]).dt.days
             <= days_limit
         ]
 
-        # Count how many purchase users had (defined by value > 0) and then how many users are in each place
+        # Count how many purchase customers had (defined by value > 0) and then how many customers are in each place
         data = data[data[self.value_col] > 0]
         data['dsi'] = ((data[self.event_time_col] - data[self.registration_time_col]).dt.days).fillna(0)
         data['early_revenue'] = data.apply(lambda x: (x['dsi'] <= early_limit) * x[self.value_col], axis=1)
@@ -474,13 +512,13 @@ class LTVexploratory:
             y_axis=self.uuid_col,
             y_format='%',
             hue='late_class',
-            title=f"Share of paying users until {days_limit} days after registration (Y, %) versus their early spending classification days since registration (X), \nby late spending classification (color)"
+            title=f"Share of paying customers until {days_limit} days after registration (Y, %) versus their early spending classification days since registration (X), \nby late spending classification (color)"
         )
 
     def plot_n(self):
         _fig, ax = plt.subplots(2, 1, figsize=(10, 10))
-        self.data_ancor["ancor_event_name"].value_counts().plot.barh(ax=ax[0])
-        ax[0].set_title("event_name from df_ancore")
+        self.data_customers["customers_event_name"].value_counts().plot.barh(ax=ax[0])
+        ax[0].set_title("event_name from df_customers")
         self.data_events["event_name"].value_counts().plot.barh(ax=ax[1])
         ax[1].set_title("event_name from df_event")
         plt.show()
@@ -492,7 +530,7 @@ class LTVexploratory:
         ].min()
         days_before_first_purchase.hist(ax=ax, bins=50)
         plt.title("Days between registration and the first purchase")
-        plt.ylabel("Users")
+        plt.ylabel("Customers")
         plt.xlabel("Days")
         plt.show()
         pd.set_option("display.float_format", lambda x: "%.1f" % x)
@@ -517,7 +555,7 @@ class LTVexploratory:
         )
         days_after_first_purchase.hist(ax=ax, bins=50)
         plt.title("Days between the first purchase and the next one")
-        plt.ylabel("Users")
+        plt.ylabel("Customers")
         plt.xlabel("Days")
         plt.show()
         pd.set_option("display.float_format", lambda x: "%.1f" % x)
@@ -532,7 +570,7 @@ class LTVexploratory:
             .describe()
         )
         stat.loc[
-            "users without second purchase"
+            "customers without second purchase"
         ] = f"{(self._df[self.uuid_col].nunique() - self._df.loc[self._df['days_after_first_purch'] > 0, self.uuid_col].nunique())/self._df[self.uuid_col].nunique():.2%}"
         display(stat)
         print(
@@ -545,7 +583,7 @@ class LTVexploratory:
         ax.hist(
             self._df.groupby(self.uuid_col)["max_days_for_ltv"].min(), bins=30
         )
-        ax.set_title("Life time distribution of users who have purchases history")
+        ax.set_title("Life time distribution of customers who have purchases history")
         plt.show()
 
     def plot_linear_corr(self):
@@ -614,7 +652,7 @@ class LTVexploratory:
         target = pivot_count_table.columns.to_list() * len(pivot_count_table.index)
         value = [pivot_count_table.loc[x, y] * 100 for x, y in zip(source, target)]
         dict_translate = {
-            "0.users_with_zero_purchases": {
+            "0.customers_with_zero_purchases": {
                 "color": "red",
                 "color_link": "rgba(255, 204, 203, 0.8)",
                 "ind": 0,
@@ -718,12 +756,12 @@ class LTVexploratory:
             )
 
         print(
-            "Let's look at this value (how many users will have the same classification flag if we compare different periods between each other)"
+            "Let's look at this value (how many customers will have the same classification flag if we compare different periods between each other)"
         )
         _, ax = plt.subplots(figsize=(30, 15))
         cor = self._payer_types.replace(
             {
-                "0.users_with_zero_purchases": 0,
+                "0.customers_with_zero_purchases": 0,
                 "1.low_payers": 1,
                 "2.mid_payers": 2,
                 "3.high_payers": 3,
@@ -736,7 +774,7 @@ class LTVexploratory:
             ax=ax,
         )
         plt.title(
-            "Share of users who didn't change their classification flag (no-payers, low-payer, mid-payer, high-payer) across periods"
+            "Share of customers who didn't change their classification flag (no-payers, low-payer, mid-payer, high-payer) across periods"
         )
 
     def plot_drop_off(self):
@@ -745,23 +783,23 @@ class LTVexploratory:
         _data = self._df.groupby(self.uuid_col)["max_days_for_ltv"].min()
         ax.hist(_data, bins=1000, cumulative=-1)
         ax.set_title(
-            "Number of users which we can use in train set depend on horizon which we choose"
+            "Number of customers which we can use in train set depend on horizon which we choose"
         )
         ax.set_xticks(np.arange(_data.min(), _data.max(), 50))
         plt.show()
 
     def plot_(self):
-        # We have users with different life times, it means that building LTV distribution histogram for all users together will be not good.
-        # Because in this case we will compare ltv for a user who have couple years purchase history with a user who joined a couple days ago. It doesn't make sense.
-        # So the main idea is to see distribution for users groupped by almost the same number of active days on the platform
-        active_user_stats = self._df.groupby(self.uuid_col).agg(
+        # We have customers with different life times, it means that building LTV distribution histogram for all customers together will be not good.
+        # Because in this case we will compare ltv for a customer who have couple years purchase history with a customer who joined a couple days ago. It doesn't make sense.
+        # So the main idea is to see distribution for customers groupped by almost the same number of active days on the platform
+        active_customer_stats = self._df.groupby(self.uuid_col).agg(
             {"max_days_for_ltv": "min", "purchase_value": "sum"}
         )
-        lifeteime_quantiles = active_user_stats["max_days_for_ltv"].quantile(
+        lifeteime_quantiles = active_customer_stats["max_days_for_ltv"].quantile(
             np.linspace(0, 1, 20 + 1)
         )
-        active_user_stats["lifetime_bins"] = pd.cut(
-            active_user_stats["max_days_for_ltv"],
+        active_customer_stats["lifetime_bins"] = pd.cut(
+            active_customer_stats["max_days_for_ltv"],
             bins=lifeteime_quantiles,
             labels=lifeteime_quantiles.iloc[:-1].astype(str)
             + " - "
@@ -770,20 +808,20 @@ class LTVexploratory:
         )
         _, ax = plt.subplots(figsize=(40, 10), dpi=50)
         sns.boxplot(
-            data=active_user_stats,
+            data=active_customer_stats,
             x="lifetime_bins",
             y="purchase_value",
             ax=ax,
             color="orange",
         )
-        # sns.violinplot(data=active_user_stats, x="lifetime_bins", y="purchase_value")
+        # sns.violinplot(data=active_customer_stats, x="lifetime_bins", y="purchase_value")
         ax.tick_params(axis="x", labelrotation=45)
         ax.set_xlabel("Active days bins")
         ax.set_ylabel("LTV purchases")
         # ax.set( yscale="log")
         ax2 = ax.twinx()
         sns.lineplot(
-            data=active_user_stats.groupby("lifetime_bins")["purchase_value"]
+            data=active_customer_stats.groupby("lifetime_bins")["purchase_value"]
             .median()
             .reset_index(),
             x="lifetime_bins",
@@ -791,24 +829,24 @@ class LTVexploratory:
             ax=ax2,
         )
         ax2.set_ylabel("median LTV purchases")
-        plt.title("LTV distribution depending on user's active days")
+        plt.title("LTV distribution depending on customer's active days")
         plt.show()
-        active_user_stats["outlier_line"] = (
-            active_user_stats["lifetime_bins"]
+        active_customer_stats["outlier_line"] = (
+            active_customer_stats["lifetime_bins"]
             .map(
-                active_user_stats.groupby("lifetime_bins")["purchase_value"].quantile(
+                active_customer_stats.groupby("lifetime_bins")["purchase_value"].quantile(
                     0.95
                 )
             )
             .astype(np.float64)
         )
-        active_user_stats = active_user_stats[
-            active_user_stats["purchase_value"] <= active_user_stats["outlier_line"]
+        active_customer_stats = active_customer_stats[
+            active_customer_stats["purchase_value"] <= active_customer_stats["outlier_line"]
         ]
         _, ax = plt.subplots(figsize=(40, 10), dpi=50)
-        # sns.boxplot(data=active_user_stats, x='lifetime_bins', y='purchase_value', ax=ax, color='orange')
+        # sns.boxplot(data=active_customer_stats, x='lifetime_bins', y='purchase_value', ax=ax, color='orange')
         sns.violinplot(
-            data=active_user_stats,
+            data=active_customer_stats,
             x="lifetime_bins",
             y="purchase_value",
             width=1,
@@ -820,7 +858,7 @@ class LTVexploratory:
         # ax.set( yscale="log")
         ax2 = ax.twinx()
         sns.lineplot(
-            data=active_user_stats.groupby("lifetime_bins")["purchase_value"]
+            data=active_customer_stats.groupby("lifetime_bins")["purchase_value"]
             .median()
             .reset_index(),
             x="lifetime_bins",
@@ -829,25 +867,25 @@ class LTVexploratory:
         )
         ax2.set_ylabel("median LTV purchases")
         plt.title(
-            "LTV distribution depending on user's active days (without outliers in each group)"
+            "LTV distribution depending on customer's active days (without outliers in each group)"
         )
         plt.show()
 
     def plot_freq(self):
         # Let's have a look on the first component of LTV: frequency
-        active_user_stats = self._df.groupby(self.uuid_col).agg(
+        active_customer_stats = self._df.groupby(self.uuid_col).agg(
             {"max_days_for_ltv": "min", "purchase_value": "count"}
         )
-        active_user_stats["purchase_value"] = (
-            active_user_stats["purchase_value"]
-            / active_user_stats["max_days_for_ltv"]
+        active_customer_stats["purchase_value"] = (
+            active_customer_stats["purchase_value"]
+            / active_customer_stats["max_days_for_ltv"]
             * 30
         )
-        lifeteime_quantiles = active_user_stats["max_days_for_ltv"].quantile(
+        lifeteime_quantiles = active_customer_stats["max_days_for_ltv"].quantile(
             np.linspace(0, 1, 20 + 1)
         )
-        active_user_stats["lifetime_bins"] = pd.cut(
-            active_user_stats["max_days_for_ltv"],
+        active_customer_stats["lifetime_bins"] = pd.cut(
+            active_customer_stats["max_days_for_ltv"],
             bins=lifeteime_quantiles,
             labels=lifeteime_quantiles.iloc[:-1].astype(str)
             + " - "
@@ -857,20 +895,20 @@ class LTVexploratory:
 
         _, ax = plt.subplots(figsize=(40, 10), dpi=50)
         sns.boxplot(
-            data=active_user_stats,
+            data=active_customer_stats,
             x="lifetime_bins",
             y="purchase_value",
             ax=ax,
             color="orange",
         )
-        # sns.violinplot(data=active_user_stats, x="lifetime_bins", y="purchase_value")
+        # sns.violinplot(data=active_customer_stats, x="lifetime_bins", y="purchase_value")
         ax.tick_params(axis="x", labelrotation=45)
         ax.set_xlabel("Active days bins")
         ax.set_ylabel("Purchases frequency (number purchases per 30 days)")
         # ax.set( yscale="log")
         ax2 = ax.twinx()
         sns.lineplot(
-            data=active_user_stats.groupby("lifetime_bins")["purchase_value"]
+            data=active_customer_stats.groupby("lifetime_bins")["purchase_value"]
             .median()
             .reset_index(),
             x="lifetime_bins",
@@ -878,25 +916,25 @@ class LTVexploratory:
             ax=ax2,
         )
         ax2.set_ylabel("median Purchases frequency (number purchases per 30 days)")
-        plt.title("Purchases frequency distribution depending on user's active days")
+        plt.title("Purchases frequency distribution depending on customer's active days")
         plt.show()
 
-        active_user_stats["outlier_line"] = (
-            active_user_stats["lifetime_bins"]
+        active_customer_stats["outlier_line"] = (
+            active_customer_stats["lifetime_bins"]
             .map(
-                active_user_stats.groupby("lifetime_bins")["purchase_value"].quantile(
+                active_customer_stats.groupby("lifetime_bins")["purchase_value"].quantile(
                     0.95
                 )
             )
             .astype(np.float64)
         )
-        active_user_stats = active_user_stats[
-            active_user_stats["purchase_value"] <= active_user_stats["outlier_line"]
+        active_customer_stats = active_customer_stats[
+            active_customer_stats["purchase_value"] <= active_customer_stats["outlier_line"]
         ]
         _, ax = plt.subplots(figsize=(40, 10), dpi=50)
-        # sns.boxplot(data=active_user_stats, x='lifetime_bins', y='purchase_value', ax=ax, color='orange')
+        # sns.boxplot(data=active_customer_stats, x='lifetime_bins', y='purchase_value', ax=ax, color='orange')
         sns.violinplot(
-            data=active_user_stats,
+            data=active_customer_stats,
             x="lifetime_bins",
             y="purchase_value",
             width=1,
@@ -908,7 +946,7 @@ class LTVexploratory:
         # ax.set( yscale="log")
         ax2 = ax.twinx()
         sns.lineplot(
-            data=active_user_stats.groupby("lifetime_bins")["purchase_value"]
+            data=active_customer_stats.groupby("lifetime_bins")["purchase_value"]
             .median()
             .reset_index(),
             x="lifetime_bins",
@@ -917,19 +955,19 @@ class LTVexploratory:
         )
         ax2.set_ylabel("median Purchases frequency (number purchases per 30 days)")
         plt.title(
-            "Purchases frequency distribution depending on user's active days (without outliers in each group)"
+            "Purchases frequency distribution depending on customer's active days (without outliers in each group)"
         )
         plt.show()
 
     def plot_apv(self):
-        active_user_stats = self._df.groupby(self.uuid_col).agg(
+        active_customer_stats = self._df.groupby(self.uuid_col).agg(
             {"max_days_for_ltv": "min", "purchase_value": "median"}
         )
-        lifeteime_quantiles = active_user_stats["max_days_for_ltv"].quantile(
+        lifeteime_quantiles = active_customer_stats["max_days_for_ltv"].quantile(
             np.linspace(0, 1, 20 + 1)
         )
-        active_user_stats["lifetime_bins"] = pd.cut(
-            active_user_stats["max_days_for_ltv"],
+        active_customer_stats["lifetime_bins"] = pd.cut(
+            active_customer_stats["max_days_for_ltv"],
             bins=lifeteime_quantiles,
             labels=lifeteime_quantiles.iloc[:-1].astype(str)
             + " - "
@@ -939,7 +977,7 @@ class LTVexploratory:
 
         _, ax = plt.subplots(figsize=(40, 10), dpi=50)
         sns.boxplot(
-            data=active_user_stats,
+            data=active_customer_stats,
             x="lifetime_bins",
             y="purchase_value",
             ax=ax,
@@ -953,7 +991,7 @@ class LTVexploratory:
         # ax.set( yscale="log")
         ax2 = ax.twinx()
         sns.lineplot(
-            data=active_user_stats.groupby("lifetime_bins")["purchase_value"]
+            data=active_customer_stats.groupby("lifetime_bins")["purchase_value"]
             .median()
             .reset_index(),
             x="lifetime_bins",
@@ -961,25 +999,25 @@ class LTVexploratory:
             ax=ax2,
         )
         ax2.set_ylabel("median purchase value purchases")
-        plt.title("Purchase value distribution depending on user's active days")
+        plt.title("Purchase value distribution depending on customer's active days")
         plt.show()
 
-        active_user_stats["outlier_line"] = (
-            active_user_stats["lifetime_bins"]
+        active_customer_stats["outlier_line"] = (
+            active_customer_stats["lifetime_bins"]
             .map(
-                active_user_stats.groupby("lifetime_bins")["purchase_value"].quantile(
+                active_customer_stats.groupby("lifetime_bins")["purchase_value"].quantile(
                     0.95
                 )
             )
             .astype(np.float64)
         )
-        active_user_stats = active_user_stats[
-            active_user_stats["purchase_value"] <= active_user_stats["outlier_line"]
+        active_customer_stats = active_customer_stats[
+            active_customer_stats["purchase_value"] <= active_customer_stats["outlier_line"]
         ]
         _, ax = plt.subplots(figsize=(40, 10), dpi=50)
-        # sns.boxplot(data=active_user_stats, x='lifetime_bins', y='purchase_value', ax=ax, color='orange')
+        # sns.boxplot(data=active_customer_stats, x='lifetime_bins', y='purchase_value', ax=ax, color='orange')
         sns.violinplot(
-            data=active_user_stats,
+            data=active_customer_stats,
             x="lifetime_bins",
             y="purchase_value",
             width=1,
@@ -991,7 +1029,7 @@ class LTVexploratory:
         # ax.set( yscale="log")
         ax2 = ax.twinx()
         sns.lineplot(
-            data=active_user_stats.groupby("lifetime_bins")["purchase_value"]
+            data=active_customer_stats.groupby("lifetime_bins")["purchase_value"]
             .median()
             .reset_index(),
             x="lifetime_bins",
@@ -1000,7 +1038,7 @@ class LTVexploratory:
         )
         ax2.set_ylabel("median purchase value purchases")
         plt.title(
-            "Purchase value distribution depending on user's active days (without outliers in each group)"
+            "Purchase value distribution depending on customer's active days (without outliers in each group)"
         )
         plt.show()
 
