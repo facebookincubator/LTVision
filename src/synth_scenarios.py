@@ -1,4 +1,7 @@
-from typing import Dict
+# Copyright (c) Meta Platforms, Inc. and affiliates.
+
+# This source code is licensed under the BSD-style license found in the
+# LICENSE file in the root directory of this source tree.
 import pandas as pd
 import numpy as np
 from src.event_generator import BinomialEventGenerator, ParetoEventGenerator, LognormalEventGenerator
@@ -16,6 +19,7 @@ class BaseScenario():
         self.random_seed = random_seed
 
         self.conv_event_gen = None
+        self.cond_purchases_quantity_gen = None
         self.cond_purchase_event_gen = None
         self.cond_purchase_value_gen = None
 
@@ -25,21 +29,34 @@ class BaseScenario():
     def get_conversion_prob(self, customer_data: pd.DataFrame) -> pd.DataFrame:
         return self.conv_event_gen.generate_events(customer_data)
 
-    def get_conditional_purchase_prob(self, data: pd.DataFrame) -> pd.DataFrame:
-        return self.cond_purchase_event_gen.generate_events(data)
+    def get_conditional_purchases(self, customer_data: pd.DataFrame) -> pd.DataFrame:
+        return self.cond_purchases_quantity_gen.generate_events(customer_data)
+    
+    def get_conditional_purchase_prob(self, data: pd.DataFrame, trials: int=None) -> pd.DataFrame:
+        trials = trials if trials is not None else 1
+        return self.cond_purchase_event_gen.generate_events(data, scale=trials)
     
     def get_conditional_purchase_value(self, data: pd.DataFrame) -> pd.DataFrame:
         return self.cond_purchase_value_gen.generate_events(data)
     
     def set_revenue_events(self, customer_data: pd.DataFrame, events_data: pd.DataFrame) -> pd.DataFrame:
 
-        customer_data['converted'] = self.get_conversion_prob(customer_data) # probability of user ever converting 
-        customer_data = customer_data[customer_data['converted'] == 1] # users who never made a purchase event. This speeds up the following methods
-        data = pd.merge(customer_data, events_data)
-        data['purchased'] = self.get_conditional_purchase_prob(data) # probability of making a purchase conditional to returning
+        data = customer_data.copy()
+        data['converted'] = self.get_conversion_prob(data) # probability of user ever converting 
+        data = data[data['converted'] == 1]
+
+        data['total_purchases'] = self.get_conditional_purchases(data)
+        data = pd.merge(data, events_data)
+        # create probabilty based on exponential distribution. Given PDF(x) = lambda*exp(-lambda*x), E[PDF(x)] = 1/lambda
+        data['purchase_probability'] = data.apply(
+            lambda x: .1/x['total_purchases']*np.exp(-(.1/x['total_purchases'])*x['days_since_registration']), 
+            axis=1)
+        data['purchased'] = self.get_conditional_purchase_prob(data, data['total_purchases']) # probability of making a purchase conditional to returning
+        data = data[data['purchased'] > 0]
+
         data['purchase_value'] = self.get_conditional_purchase_value(data) # expected value of purchase conditional to making purchase
-        data['value'] = data['converted'] * data['returned'] * data['purchased'] * data['purchase_value']
-        data = data.drop(['converted', 'returned', 'purchased', 'purchase_value'], axis=1)
+        data['value'] = data['converted'] * data['purchased'] * data['purchase_value']
+        data = data.drop(['converted', 'purchased', 'purchase_value', 'total_purchases', 'purchase_probability'], axis=1)
         return data
 
 class BaseAppScenario(BaseScenario):
@@ -63,24 +80,32 @@ class IAPAppScenario(BaseAppScenario):
                 'device':  lambda x: 0.5 if x == 'ios' else 0,
                 'download_method': lambda x: 0 if x == 'wifi' else -1
             },
-            baseline=-4, # around 1.8%
+            baseline=-3, # around 1.8%
+            random_seed=self.random_seed
+        )
+        self.cond_purchases_quantity_gen = self.cond_purchase_value_gen = ParetoEventGenerator(
+            {
+                'country': lambda x: {'US': 2, 'CA': 1, 'GB': 1.2, 'BR': -2, 'IN': -1.5, 'ES': 0, 'FR': 0.0}.get(x, 0),
+                'device':  lambda x: 2 if x == 'ios' else 0,
+                'download_method': lambda x: 2 if x == 'wifi' else 0
+            },
+            baseline=5, # we expect as baseline 5 purchases
             random_seed=self.random_seed
         )
         self.cond_purchase_event_gen = BinomialEventGenerator(
             {
-                'country': lambda x: {'US': 0.2, 'CA': 0.1, 'GB': 0.0, 'BR': -0.1, 'IN': -0.1, 'ES': 0, 'FR': 0.0}.get(x, 0),
-                'device':  lambda x: 0.3 if x == 'ios' else 0,
-                'days_since_registration': lambda x: 3*np.exp(-0.2*x),
+                'purchase_probability': lambda x: x
             },
-            baseline=-1, # ~ 27% purchase chance if return (given that the person will convert)
-            random_seed=self.random_seed
+            random_seed=self.random_seed,
+            logit_output=False
         )
+
         self.cond_purchase_value_gen = ParetoEventGenerator(
             {
                 'country': lambda x: {'US': 2, 'CA': 1, 'GB': 1.2, 'BR': -2, 'IN': -1.5, 'ES': 0, 'FR': 0.0}.get(x, 0),
                 'device':  lambda x: 2 if x == 'ios' else 0,
-                'days_since_registration': lambda x: 0 if x < 500 else 5
+                'total_purchases': lambda x: np.log(x)
             },
-            baseline=18, # we put the expected value at 5. It *must* always be over 1
+            baseline=10, # we put the expected value at 5. It *must* always be over 1
             random_seed=self.random_seed
         )
