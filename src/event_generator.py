@@ -26,7 +26,7 @@ class EventGenerator():
         - random_seed: defines the random-seed for pseudo-random number generator, which is used to generate the samples
         """
         self.features_map = features_map
-        self.scale = scale
+        self.scale = scale if scale is not None else 1
         self.baseline = baseline
         self.rng = np.random.default_rng(random_seed)
     
@@ -36,13 +36,19 @@ class EventGenerator():
         """
         raise NotImplementedError
 
-    def generate_events(self, data: pd.DataFrame):
+    def generate_events(self, data: pd.DataFrame, scale: float=None):
         """
         Applies the mapping of features->value for each row in the dataframe and sum all contributions together.
         The result then gets passed to a sampling algorithm
+        Inputs
+            - data: dataframe containing the columns that serve to define the impact in the distribution
+                    Ex: if country == 'US', double the probability of the event 
+            - scale: a float, pd.Series or np.ndarray which tweaks the distribution in consideration. For Binomial distributions.
+                    it defines the number of samples per user. For log-normal distribution, it sets the variance of the final distribution
         """
         locs = data.apply(self.features_map).sum(axis=1) + self.baseline
-        return self._sample_from_distribution(locs, self.scale)
+        scale = scale if scale is not None else self.scale
+        return self._sample_from_distribution(locs, scale)
     
 class BinomialEventGenerator(EventGenerator):
     def __init__(self, features_map: Dict[str, object], scale=None, baseline: float=0, random_seed: int=None, logit_output: bool=True) -> None:
@@ -55,7 +61,6 @@ class BinomialEventGenerator(EventGenerator):
         Then generates samples based on the results of each row independently assuming a Binomial distribution where
         'scale' represents the number of trials
         """
-        scale = 1 if scale is None else scale
         probabilities = logistic.cdf(locs) if self.logit_output else locs
         return self.rng.binomial(scale, probabilities)
     
@@ -66,8 +71,6 @@ class LognormalEventGenerator(EventGenerator):
         Then generates samples based on the results of each row independently assuming a log-normal distribution where
         'scale' represents the standard deviation of the log-normal distribution
         """
-        scale = 1 if scale is None else scale
-        
         mean = np.log(locs/(
             ((scale**2)/(locs**2) + 1
             )**0.5))
