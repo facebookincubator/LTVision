@@ -47,8 +47,6 @@ class LTVexploratory:
         # run auxiliar methods
         self._validate_datasets()
         self._prep_df()
-        self._prep_LTV_periods()
-        self._prep_payer_types()
 
     def _validate_datasets(self) -> None:
         """
@@ -89,35 +87,6 @@ class LTVexploratory:
 
 
     def _prep_df(self) -> None:
-        customers_uuid = set(self.data_customers[self.uuid_col])
-        event_uuid = set(self.data_events[self.uuid_col])
-        uuid_stat = pd.DataFrame(columns=['table', 'number_uuid'])
-        uuid_stat['table'] = ['customers only', 'event only', 'customers & event']
-        uuid_stat['number_uuid'] = [len(customers_uuid - event_uuid), len(event_uuid - customers_uuid), len(event_uuid & customers_uuid)]
-        uuid_stat['share_uuid'] = uuid_stat['number_uuid'].map(lambda x: f"{x/uuid_stat['number_uuid'].sum():.2%}")
-        display(uuid_stat)
-
-
-        # Join two tables, I will analyse only data in event table, because we can't do anything with customers who don't have purchase histiry
-
-
-        df = self.data_customers.merge(self.data_events, on=self.uuid_col, how='inner', suffixes=('_registration', '_event'))
-        data_upload_date = df[self.event_time_col].max()
-        df['max_days_for_ltv'] = (data_upload_date - df[self.registration_time_col]).dt.days + 1
-        df['year-month'] = df[self.event_time_col].dt.year.astype(str) + '-' + ("0" + df[self.event_time_col].dt.month.astype(str)).str[-2:]
-        df['days_between_purchase_and_reg'] = (pd.to_datetime(df[self.event_time_col].dt.date) -
-                                            pd.to_datetime(df[self.registration_time_col].dt.date)).dt.days
-        df['time_of_first_purchase'] = pd.to_datetime(df[self.uuid_col].map(df.groupby(self.uuid_col)[self.event_time_col].min()))
-        df['days_after_first_purch'] = (df[self.event_time_col] - df['time_of_first_purchase']).dt.days
-
-
-        uuid_for_deletion = df.loc[df['days_between_purchase_and_reg'] < 0, self.uuid_col].unique()
-        print(f'We are going to delete {len(uuid_for_deletion)/df[self.uuid_col].nunique():.2%} UUID from df table because of negative value between first purchase date and registration')
-        # Delete uuid-outliers
-        df = df[~df[self.uuid_col].isin(uuid_for_deletion)].reset_index(drop=True)
-        self._df = df
-
-
         # Left join customers and events data, so that you have a dataframe with all customers and their events (if no event, then timestamp is null)
         # just select some columns to make it easier to understand what is the information that is used and avoid join complications caused by the name of other columns
         self.joined_df = pd.merge(
@@ -144,29 +113,6 @@ class LTVexploratory:
             ).days,
             axis=1,
         )
-
-    def _prep_LTV_periods(self) -> None:
-        # calculate ltv by days for each uuid
-        periods = np.append([1,3,5], np.arange(7, 7*30+7, 7))
-        for period in periods:
-            self._df[period] = self._df['purchase_value'] *(self._df['days_between_purchase_and_reg'] <= period)
-            # if uuid doesn't have data for calculating ltv for this period (for example if our customer joined only 1 day ago, he doesn't have enough data in order to calculate ltv for 7 days), I want to see None in this cell, because it will be fair
-            self._df.loc[self._df['max_days_for_ltv'] < period, period] = None
-        ltv_periods = self._df.groupby([self.uuid_col])[periods].sum()
-        # function sum converts None to 0, so I use proxy function which set None where is necessary
-        ltv_periods[self._df.groupby([self.uuid_col])[periods].max().isna()] = None
-        self._ltv_periods = ltv_periods
-
-
-    def _prep_payer_types(self):
-        payers_types = pd.DataFrame()
-        for col in self._ltv_periods.columns:
-            quatile_for_type_of_payers = np.unique(np.append(0, self._ltv_periods.loc[self._ltv_periods[col] > 0, col].quantile(np.linspace(0, 1, 3 + 1))))
-            while len(quatile_for_type_of_payers) < 5:
-                quatile_for_type_of_payers = np.append(quatile_for_type_of_payers, max(quatile_for_type_of_payers) + 1)
-            payers_types[col] = pd.cut(self._ltv_periods[col], bins=quatile_for_type_of_payers,
-            labels=['0.customers_with_zero_purchases', '1.low_payers', '2.mid_payers', '3.high_payers'], include_lowest=True)
-        self._payer_types = payers_types
 
     # Analysis Plots
     def summary(self):
