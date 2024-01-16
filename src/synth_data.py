@@ -16,6 +16,17 @@ class LTVSyntheticData():
                  synthetic_scenario: BaseScenario=None,
                  random_seed:int=None
                  ) -> None:
+        """
+        Inputs
+            - n_users: number of customers 
+            - registration_event_name: the name of the event associated with the registration (i.e. identification) of a customer
+            - event_name: name of the revenue event
+            - start_date: start date for the dataset. Earliest time when a customer could be registered or generate a revenue event
+            - end_date: end date for the dataset. Latest time when a customer could be registered or generate a revenue event
+            - synthetic_scenario: the type of scenario to generate the data for. Takes BaseScenario instance as input or name of the scenario.
+                Default scenario: IAPAppScenario
+            - random_seed: random seed of the pseud-random number generator used in the synthetic_scenario
+        """
         # Base Parameters
         self.n_users = n_users
         self.registration_event_name = registration_event_name
@@ -48,7 +59,7 @@ class LTVSyntheticData():
         events_data['days_since_registration'] = (events_data['event_date'] - events_data['registration_date']).dt.days
         events_data['event_name'] = self.event_name
         # generate revenue events
-        events_data = self.synthetic_scenario.set_revenue_events(self.customer_data, events_data)
+        events_data = self.synthetic_scenario.get_revenue_events(self.customer_data, events_data)
         # remove information already present in customer data
         events_data = events_data.drop(demographic_cols, axis=1)
         return events_data
