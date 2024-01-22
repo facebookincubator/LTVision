@@ -73,19 +73,19 @@ class LTVexploratory:
         # customers dataset checks
         assert((isinstance(
             self.data_customers[self.uuid_col].dtype, pd.StringDtype) or 
-            is_object_dtype(self.data_customers[self.uuid_col]))) , f"The column [{self.uuid_col}] referencing to the customer-id in the customers dataset was expected to be of data pd.StringDtype or object. But it is of type {self.data_ancor[self.uuid_col].dtype}"
-        assert(is_datetime64_any_dtype(self.data_customers[self.registration_time_col])), f"The column [{self.registration_time_col}] referencing to the registrationtime in the customers dataset was expected to be of type [datime]. But it is of type {self.data_ancor[self.registration_time_col].dtype}"
+            is_object_dtype(self.data_customers[self.uuid_col]))) , f"The column [{self.uuid_col}] referencing to the customer-id in the customers dataset was expected to be of data pd.StringDtype or object. But it is of type {self.data_customers[self.uuid_col].dtype}"
+        assert(is_datetime64_any_dtype(self.data_customers[self.registration_time_col])), f"The column [{self.registration_time_col}] referencing to the registrationtime in the customers dataset was expected to be of type [datime]. But it is of type {self.data_customers[self.registration_time_col].dtype}"
 
         # events dataset checks
         assert((isinstance(
             self.data_events[self.uuid_col].dtype, pd.StringDtype) or 
-            is_object_dtype(self.data_events[self.uuid_col]))) , f"The column [{self.uuid_col}] referencing to the customer-id in the events dataset was expected to be of data pd.StringDtype or object. But it is of type {self.data_ancor[self.uuid_col].dtype}"
-        assert(is_datetime64_any_dtype(self.data_events[self.event_time_col])) , f"The column [{self.event_time_col}] referencing to the registrationtime in the events dataset was expected to be of type [datime]. But it is of type {self.data_ancor[self.event_time_col].dtype}"
-        assert(is_any_real_numeric_dtype(self.data_events[self.value_col])) , f"The column [{self.value_col}] referencing value of a transaction in the events dataset was expected to be of numeric. But it is of type {self.data_ancor[self.value_col].dtype}"
+            is_object_dtype(self.data_events[self.uuid_col]))) , f"The column [{self.uuid_col}] referencing to the customer-id in the events dataset was expected to be of data pd.StringDtype or object. But it is of type {self.data_customers[self.uuid_col].dtype}"
+        assert(is_datetime64_any_dtype(self.data_events[self.event_time_col])) , f"The column [{self.event_time_col}] referencing to the registrationtime in the events dataset was expected to be of type [datime]. But it is of type {self.data_customers[self.event_time_col].dtype}"
+        assert(is_any_real_numeric_dtype(self.data_events[self.value_col])) , f"The column [{self.value_col}] referencing value of a transaction in the events dataset was expected to be of numeric. But it is of type {self.data_customers[self.value_col].dtype}"
 
         # consistency checks
-        assert(is_dtype_equal(self.data_customers[self.uuid_col], self.data_events[self.uuid_col])), f"The customer-id columns of the two input datasets are not the same. In the customers dataset it is of type [{self.data_ancor[self.uuid_col].dtype}], while in the events dataset it is of type [{self.data_ancor[self.uuid_col].dtype}]"
-        assert(is_dtype_equal(self.data_customers[self.registration_time_col], self.data_events[self.event_time_col])), f"The timestamp columns of the two input datasets are not the same. In the customers dataset it is of type [{self.data_ancor[self.registration_time_col].dtype}], while in the events dataset it is of type [{self.data_ancor[self.event_time_col].dtype}]"
+        assert(is_dtype_equal(self.data_customers[self.uuid_col], self.data_events[self.uuid_col])), f"The customer-id columns of the two input datasets are not the same. In the customers dataset it is of type [{self.data_customers[self.uuid_col].dtype}], while in the events dataset it is of type [{self.data_customers[self.uuid_col].dtype}]"
+        assert(is_dtype_equal(self.data_customers[self.registration_time_col], self.data_events[self.event_time_col])), f"The timestamp columns of the two input datasets are not the same. In the customers dataset it is of type [{self.data_customers[self.registration_time_col].dtype}], while in the events dataset it is of type [{self.data_customers[self.event_time_col].dtype}]"
 
 
     def _prep_df(self) -> None:
