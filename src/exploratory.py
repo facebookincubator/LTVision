@@ -463,7 +463,7 @@ class LTVexploratory:
         )
         data['customers'] = data['customers'] / data['customers'].sum()
 
-        def plot_users_flow(sources: list, targets: list, quantity: list) -> go.Figure:
+        def _plot_sankey(sources: list, targets: list, quantity: list) -> go.Figure:
             """
             This method creates a dataframe of flow from 'source' to 'target' based on a given quantity
             It is expected that the data is already orders in a way that it wants to be displayed. If not,
@@ -549,4 +549,4 @@ class LTVexploratory:
 
             return fig
 
-        return plot_users_flow(data['early_class'].to_list(), data['late_class'].to_list(), data['customers'].to_list())
+        return _plot_sankey(data['early_class'].to_list(), data['late_class'].to_list(), data['customers'].to_list())
