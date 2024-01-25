@@ -16,19 +16,19 @@ class EventGenerator():
     for our model are not infered from a dataset, but passed when the class' instance
     is defined
     """
-    def __init__(self, features_map: Dict[str, object], scale=None, baseline: float=0, random_seed: int=None) -> None:
+    def __init__(self, features_map: Dict[str, object], scale=None, baseline: float=0, seed: int=None) -> None:
         """
         Inputs
         - features_map: dictionary that translates the value of each feature to the outcome (e.g. how much iOS vs Android increase probability of conversion)
         - scale: parameter associated with the variance of the distribution and mean different things depending on the selected distribution. 
                  For Binominal it means the number of samples per user. For log-normal distribution, it sets the variance of the final distribution
         - baseline: constant value to be added when calculating the value of each row
-        - random_seed: defines the random-seed for pseudo-random number generator, which is used to generate the samples
+        - seed: defines the random-seed for pseudo-random number generator, which is used to generate the samples
         """
         self.features_map = features_map
         self.scale = scale if scale is not None else 1
         self.baseline = baseline
-        self.rng = np.random.default_rng(random_seed)
+        self.rng = seed if isinstance(seed, np.random.Generator) else np.random.default_rng(seed)
     
     def _sample_from_distribution(self, locs: np.ndarray, scale: float=None) -> np.ndarray:
         """
@@ -51,8 +51,8 @@ class EventGenerator():
         return self._sample_from_distribution(locs, scale)
     
 class BinomialEventGenerator(EventGenerator):
-    def __init__(self, features_map: Dict[str, object], scale=None, baseline: float=0, random_seed: int=None, logit_output: bool=True) -> None:
-        super().__init__(features_map, scale, baseline, random_seed)
+    def __init__(self, features_map: Dict[str, object], scale=None, baseline: float=0, seed: int=None, logit_output: bool=True) -> None:
+        super().__init__(features_map, scale, baseline, seed)
         self.logit_output = logit_output
 
     def _sample_from_distribution(self, locs: np.ndarray, scale: float=None) -> np.ndarray:

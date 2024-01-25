@@ -4,11 +4,11 @@
 # LICENSE file in the root directory of this source tree.
 import pandas as pd
 import numpy as np
-from src.event_generator import BinomialEventGenerator, ParetoEventGenerator, LognormalEventGenerator
+from src.event_generator import BinomialEventGenerator, ParetoEventGenerator
 
 class BaseScenario():
 
-    def __init__(self, n_users: int, date_start: str, date_end: str, random_seed:int=None) -> None:
+    def __init__(self, n_users: int, date_start: str, date_end: str, seed:int=None) -> None:
         """
         Base class to create the characteristics associated to different products that can use
         the LTVision library. 
@@ -17,7 +17,7 @@ class BaseScenario():
         self.date_start = date_start
         self.date_end = date_end
         self.date_range = pd.date_range(date_start, date_end)
-        self.random_seed = random_seed
+        self.rng = seed if isinstance(seed, np.random.Generator) else np.random.default_rng(seed)
 
         self.conv_event_gen = None
         self.cond_purchases_quantity_gen = None
@@ -102,10 +102,10 @@ class BaseAppScenario(BaseScenario):
             - registration_date: when was the first login of the customer
         """
         return pd.DataFrame({
-            'country': np.random.choice(['US', 'CA', 'GB', 'BR', 'IN', 'ES', 'FR'], size=self.n_users, p=[0.2, 0.1, 0.05, 0.15, 0.3, 0.1, 0.1], replace=True),
-            'device':  np.random.choice(['ios', 'android'], size=self.n_users, p=[0.4, 0.6], replace=True),
-            'download_method': np.random.choice(['wifi', 'mobile_data'], size=self.n_users, p=[0.7, 0.3], replace=True),
-            'registration_date': np.random.choice(self.date_range, size=self.n_users, replace=True),
+            'country': self.rng.choice(['US', 'CA', 'GB', 'BR', 'IN', 'ES', 'FR'], size=self.n_users, p=[0.2, 0.1, 0.05, 0.15, 0.3, 0.1, 0.1], replace=True),
+            'device':  self.rng.choice(['ios', 'android'], size=self.n_users, p=[0.4, 0.6], replace=True),
+            'download_method': self.rng.choice(['wifi', 'mobile_data'], size=self.n_users, p=[0.7, 0.3], replace=True),
+            'registration_date': self.rng.choice(self.date_range, size=self.n_users, replace=True),
         })
     
 class IAPAppScenario(BaseAppScenario):
@@ -113,8 +113,8 @@ class IAPAppScenario(BaseAppScenario):
     Base scenario for a mobile app based with monetization based in in-app purchases
     """
 
-    def __init__(self, n_users: int, date_start: str, date_end: str, random_seed:int=None) -> None:
-        super().__init__(n_users, date_start, date_end)
+    def __init__(self, n_users: int, date_start: str, date_end: str, seed:int=None) -> None:
+        super().__init__(n_users, date_start, date_end, seed)
 
         self.conv_event_gen = BinomialEventGenerator(
             {
@@ -123,7 +123,7 @@ class IAPAppScenario(BaseAppScenario):
                 'download_method': lambda x: 0 if x == 'wifi' else -1
             },
             baseline=-3, # around 4.7%
-            random_seed=self.random_seed
+            seed=self.rng
         )
         self.cond_purchases_quantity_gen = self.cond_purchase_value_gen = ParetoEventGenerator(
             {
@@ -132,13 +132,13 @@ class IAPAppScenario(BaseAppScenario):
                 'download_method': lambda x: 2 if x == 'wifi' else 0
             },
             baseline=5, # we expect as baseline 5 purchases
-            random_seed=self.random_seed
+            seed=self.rng
         )
         self.cond_purchase_event_gen = BinomialEventGenerator(
             {
                 'event_probability': lambda x: x
             },
-            random_seed=self.random_seed,
+            seed=self.rng,
             logit_output=False
         )
 
@@ -149,6 +149,6 @@ class IAPAppScenario(BaseAppScenario):
                 'total_revenue_events': lambda x: np.log(x)
             },
             baseline=10, # we put the expected value at 5. It *must* always be over 1
-            random_seed=self.random_seed
+            seed=self.rng
         )
         self.event_decay_scale = 0.1
