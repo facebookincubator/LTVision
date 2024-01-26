@@ -5,9 +5,7 @@ def drop_duplicates(seq: List) -> List:
     Returns a de-duplicates version of the input.
     Requires the input to be iterable
     """
-    seen = set()
-    seen_add = seen.add
-    return [x for x in seq if not (x in seen or seen_add(x))]
+    return list(set(seq))
 
 
 def cumsum(values: List[float], constant_delta: float=0.0) -> List[float]:
