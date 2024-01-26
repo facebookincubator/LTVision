@@ -14,11 +14,10 @@ def cumsum(values: List[float], constant_delta: float=0.0) -> List[float]:
     Doesn't change the values in place, instead return new instance
     """
     output = []
-    for i, values in enumerate(values):
-        if i == 0:
-            output.append(values + constant_delta)
-        else:
-            output.append(values + output[i-1] + constant_delta)
+    last_value = 0
+    for value in values:
+        last_value = last_value + value
+        output.append(last_value + constant_delta)
     return output
 
 def lag(values: List[float], step: int, coalesce: float=None) -> List[float]:
