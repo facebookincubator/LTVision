@@ -188,7 +188,8 @@ class LTVexploratory:
         )
         complete_data = complete_data.fillna(0)
         complete_data[self.uuid_col] = complete_data[self.uuid_col]/np.sum(complete_data[self.uuid_col])
-        return self.graph.grid_plot(complete_data, "customers", "events", self.uuid_col)
+        fig = self.graph.grid_plot(complete_data, "customers", "events", self.uuid_col)
+        return fig, complete_data
 
     def plot_purchases_distribution(
         self, days_limit: int, truncate_share: float = 0.99
@@ -231,8 +232,8 @@ class LTVexploratory:
         # Find treshold truncation
         customers_truncation = data["count"].cumsum() <= truncate_share
         value_truncation = data["sum"].cumsum() <= truncate_share
-        # plot distribution by customers and by revenue
-        self.graph.bar_plot(
+        # plot distribution by customers
+        fig = self.graph.bar_plot(
             data[customers_truncation],
             x_axis="purchases",
             y_axis="count",
@@ -241,15 +242,7 @@ class LTVexploratory:
             y_format="%",
             title=f"Distribution of paying customers (Y, %) by number of purchases of each customer until {days_limit} days after registration  (X)",
         )
-        self.graph.bar_plot(
-            data[value_truncation],
-            x_axis="purchases",
-            y_axis="sum",
-            xlabel="Number of purchases",
-            ylabel="Share of value",
-            y_format="%",
-            title=f"Distribution of value (Y, %) by number of purchases of each customer until {days_limit} days after registration (X)",
-        )
+        return fig, data
 
 
     def plot_revenue_pareto(
@@ -297,7 +290,7 @@ class LTVexploratory:
             .reset_index()
         )
 
-        self.graph.line_plot(
+        fig = self.graph.line_plot(
             data,
             x_axis="cshare_customers",
             y_axis="cshare_revenue",
@@ -307,6 +300,7 @@ class LTVexploratory:
             y_format="%",
             title=f"Share of all revenue of the first {days_limit} days after customer registration (Y) versus share of paying customers",
         )
+        return fig, data
 
     def plot_customers_histogram_per_conversion_day(
             self,
@@ -350,7 +344,7 @@ class LTVexploratory:
         share_customers_within_window = data[data['dsi'] <= optimization_window][self.uuid_col].sum()
         title = f"Initial Purchase Cycle\n{100*share_customers_within_window:.1f}% of first purchases happened within the first {optimization_window} days since registration\n\nShare of paying customers (Y) versus conversion days since registration (X)"
 
-        self.graph.bar_plot(
+        fig = self.graph.bar_plot(
                     data,
                     x_axis="dsi",
                     y_axis=self.uuid_col,
@@ -359,6 +353,8 @@ class LTVexploratory:
                     y_format="%",
                     title=title
                 )
+        return fig, data
+    
     def plot_early_late_revenue_correlation(
         self,
         days_limit: int,
@@ -393,7 +389,7 @@ class LTVexploratory:
         )
         # Calculate correlation, extract the correlation only for the 'early revenue' and plot it
         customer_revenue_data = customer_revenue_data.pivot(index=self.uuid_col, columns='days_since_install', values=self.value_col).corr().reset_index()
-        self.graph.line_plot(
+        fig = self.graph.line_plot(
             customer_revenue_data,
             x_axis='days_since_install',
             y_axis=optimization_window,
@@ -401,6 +397,8 @@ class LTVexploratory:
             ylabel='Pearson Correlation',
             title=f'Correlation (Y) between revenue until {optimization_window} after registration with revenue until (X) days after registration'
             )
+        
+        return fig, customer_revenue_data
 
     def plot_paying_customers_flow(self, days_limit: int, early_limit: int, spending_breaks: Dict[str, float]):
         """
@@ -549,4 +547,4 @@ class LTVexploratory:
 
             return fig
 
-        return _plot_sankey(data['early_class'].to_list(), data['late_class'].to_list(), data['customers'].to_list())
+        return _plot_sankey(data['early_class'].to_list(), data['late_class'].to_list(), data['customers'].to_list()), data
