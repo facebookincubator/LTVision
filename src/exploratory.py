@@ -446,9 +446,11 @@ class LTVexploratory:
             output  = {}
             output['customers'] = len(data)
             output['early_revenue'] = data['early_revenue'].sum()
-            output['early_ltv'] = data['early_revenue'].sum() / output['customers']
+            output['early_ltv'] = data['early_revenue'].mean()
+            output['median_early_ltv'] = data['early_revenue'].median()
             output['late_revenue'] = data['late_revenue'].sum()
-            output['late_ltv'] = data['late_revenue'].sum() / output['customers']
+            output['late_ltv'] = data['late_revenue'].mean()
+            output['median_late_ltv'] = data['late_revenue'].median()
             return pd.Series(output)
                 
         data = (
@@ -508,20 +510,17 @@ class LTVexploratory:
                 return y_positions_source + y_positions_target
             
             def get_nodes_positions(sources: list, targets: list, quantity: list, n_nodes: int) -> (List[float], List[float]):
-
                 return get_horizontal_positions(n_nodes), get_vertical_positions(sources, targets, quantity)
 
-            
             x_positions, y_positions = get_nodes_positions(sources, targets, quantity, n_nodes)
-            
             # replicate nodes with the same values. Necessary because each
             # value in nodes represent a node. So we have to create 2 nodes with the same names
-            nodes = nodes * 2 
+            nodes = nodes * 2
 
             node = dict(
-                pad=15, 
-                thickness=20, 
-                line=dict(color='grey', width=0.5), 
+                pad=15,
+                thickness=20,
+                line=dict(color='grey', width=0.5),
                 color = palette,
                 x=x_positions,
                 y=y_positions,
@@ -543,7 +542,6 @@ class LTVexploratory:
             # Update the layout of the figure
             fig.update_layout(title_text='User Flow Between Classes', font_size=10)
             # Show the figure
-            fig.show()
 
             return fig
 
