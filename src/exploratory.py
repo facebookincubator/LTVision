@@ -6,7 +6,6 @@
 """Module providing a class for initial analysis"""
 
 from typing import List, Dict
-import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from pandas.api.types import is_datetime64_any_dtype , is_object_dtype, is_any_real_numeric_dtype, is_dtype_equal
@@ -542,7 +541,6 @@ class LTVexploratory:
             # Update the layout of the figure
             fig.update_layout(title_text='User Flow Between Classes', font_size=10)
             # Show the figure
-
             return fig
 
         return _plot_sankey(data['early_class'].to_list(), data['late_class'].to_list(), data['customers'].to_list()), data

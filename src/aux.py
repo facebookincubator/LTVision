@@ -3,9 +3,13 @@ from typing import List
 def drop_duplicates(seq: List) -> List:
     """
     Returns a de-duplicates version of the input.
-    Requires the input to be iterable
+    Requires the input to be iterable.
+    This method is necessary vs list(set(x)) as this doesn't keep the original order of the 
+    items.
     """
-    return list(set(seq))
+    seen = set()
+    seen_add = seen.add
+    return [x for x in seq if not (x in seen or seen_add(x))]
 
 
 def cumsum(values: List[float], constant_delta: float=0.0) -> List[float]:
