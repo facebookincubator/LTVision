@@ -449,3 +449,57 @@ class Graph:
             ax = self.set_ax_standard(ax, xlabel, ylabel, title)
 
         return ax
+
+
+class InteractiveGraph():
+    """
+    This class is mostly an interface to plotly, but with some standards for the visualizations (e.g. font, font size, image shape) pre-defined
+    With this class, it is easier to have all plots in the same standard and similar appereance
+    """
+    def __init__(
+            self,
+            zero_indexed: bool = True,
+            figure_size_inches=(20, 10),
+            legend_out: bool = False,
+            xlim: List[float] = None,
+            ylim: List[float] = None,
+            baseline: float = None,
+            y_axis_upper_margin: float = 0.05,):
+            
+
+        """
+        - zero_indexed: whether the plot should be zero indexed. Hint: it should. Always. Yes, always
+        - figure_size_inches: size of the figure
+        - xlabel: text to label the X axis
+        - ylabel: text to label the Y axis
+        - legend_out: whether the legend of the colors should be 'inside' or outside the plot
+        - xlim: limits of the y axis. if not defined (i.e. None) then will calculate based on the data
+        - ylim: limits of the y axis. if not defined (i.e. None) then will calculate based on the data
+        - title: title of the plot
+        - baseline: baseline value to add as a horizonatal line
+        - y_axis_upper_margin: % of max y value that the y axis should be. Should be a positive float. Ignored if ylim is not None
+        """
+
+        self.zero_indexed = zero_indexed
+        self.figure_size_inches = figure_size_inches
+        self.legend_out = legend_out
+        self.xlim = xlim
+        self.ylim = ylim
+        self.baseline = baseline
+        self.y_axis_upper_margin = y_axis_upper_margin
+
+    def _apply_fonts_standards(self, fig):
+        pass
+
+    def _apply_figure_standards(self, fig):
+        pass
+
+    
+    def line_plot(self):
+        raise NotImplementedError
+    
+    def bar_plot(self):
+        raise NotImplementedError
+    
+    def flow_chart(self):
+        raise NotImplementedError
