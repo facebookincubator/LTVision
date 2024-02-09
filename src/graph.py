@@ -11,7 +11,9 @@ import numpy as np
 import seaborn as sns
 import matplotlib.pyplot as plt
 from matplotlib.ticker import PercentFormatter, FuncFormatter
-# TODO: remove hard-coded constants inside the code
+import plotly.graph_objects as go
+import plotly.express as px
+from src.aux import lag, cumsum, drop_duplicates
 
 
 class Graph:
@@ -449,17 +451,6 @@ class Graph:
             ax = self.set_ax_standard(ax, xlabel, ylabel, title)
 
         return ax
-
-from typing import List, Dict
-import numpy as np
-import pandas as pd
-from pandas.api.types import is_datetime64_any_dtype , is_object_dtype, is_any_real_numeric_dtype, is_dtype_equal
-import plotly.graph_objects as go
-import plotly.express as px
-import seaborn as sns
-from src.graph import Graph
-from src.aux import lag, cumsum, drop_duplicates
-
 
 class InteractiveGraph():
     """
