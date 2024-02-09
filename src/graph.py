@@ -452,7 +452,7 @@ class Graph:
 
         return ax
 
-class InteractiveGraph():
+class InteractiveChart():
     """
     This class is mostly an interface to plotly, but with some standards for the visualizations (e.g. font, font size, image shape) pre-defined
     With this class, it is easier to have all plots in the same standard and similar appereance
@@ -519,6 +519,16 @@ class InteractiveGraph():
     def _transform_yaxis_in_dollars(fig, precision:int=0):
         fig.update_layout(yaxis=dict(tickformat=f"$.{precision}"))
 
+    def _transform_yaxis_tickformat(self, fig, tickformat: str, precision: int) -> None:
+        if tickformat == "":
+            fig.update_layout(yaxis_tickformat=f'.{precision}')
+        elif "$" in tickformat:
+            self._transform_yaxis_in_dollars(fig, precision)
+        elif "%" in tickformat:
+            self._transform_yaxis_in_perc(fig, precision)
+        else:
+            raise ValueError(f"Tick formart [{tickformat}] was not recognized. Only possible values are an empty string for numbers, $ for dollars, and % for percentages")
+    
     @staticmethod
     def _append_txt_to_yaxis_labels(fig, precision:int=0):
         fig.update_layout(yaxis=dict(tickformat=f"$.{precision}"))
@@ -527,25 +537,31 @@ class InteractiveGraph():
     def _add_title(fig, title: str) -> None:
         fig.update_layout(title=title)
 
-    def line_plot(self, data: pd.DataFrame, xaxis:str, yaxis: str, title:str="", precision:int=0):
+    def line_chart(self, data: pd.DataFrame, xaxis:str, yaxis: str, title:str="", precision: int=0, tickformat: str=""):
         fig = px.line(data, x=xaxis, y=yaxis, title=title)
+        self._transform_yaxis_tickformat(fig, tickformat, precision)
         self._apply_standards(fig)
         self._add_title(fig, title)
         fig.update_traces(line=dict(width=1))
         return fig
 
     
-    def bar_plot(self, data: pd.DataFrame):
-        raise NotImplementedError
+    def bar_chart(self, data: pd.DataFrame, xaxis:str, yaxis: str, title:str="", precision:int=0, tickformat: str=""):
+        fig = px.line(data, x=xaxis, y=yaxis, title=title)
+        self._transform_yaxis_tickformat(fig, tickformat, precision)
+        self._apply_standards(fig)
+        self._add_title(fig, title)
+        fig.update_traces(line=dict(width=1))
+        return fig
     
-    def histogram_plot(self, data: pd.DataFrame, xaxis:str, yaxis: str, title:str="", precision:int=0):
+    def histogram_chart(self, data: pd.DataFrame, xaxis:str, yaxis: str, title:str="", precision:int=0):
         fig = px.histogram(data, x=xaxis, y=yaxis, nbins=data.shape[0], opacity=self.bar_opacity)
         self._apply_standards(fig)
         self._transform_yaxis_in_perc(fig, precision)
         self._add_title(fig, title)
         return fig
     
-    def flow_chart(self, data: pd.DataFrame, source:str, target: str, values: str, title:str="", ):
+    def flow_chart(self, data: pd.DataFrame, source:str, target: str, values: str, title: str="", ):
         """
         This method creates a dataframe of flow from 'source' to 'target' based on a given quantity
         It is expected that the data is already orders in a way that it wants to be displayed. If not,
@@ -605,7 +621,7 @@ class InteractiveGraph():
         # replicate nodes with the same values. Necessary because each
         # value in nodes represent a node. So we have to create 2 nodes with the same names
         nodes = nodes * 2
-        
+
         node = dict(
             pad=pad_size,
             thickness=20,
