@@ -230,7 +230,6 @@ class LTVexploratory:
         data["count"] = data["count"] / data["count"].sum()
         # Find treshold truncation
         customers_truncation = data["count"].cumsum() <= truncate_share
-        value_truncation = data["sum"].cumsum() <= truncate_share
         # plot distribution by customers
         fig = self.graph.bar_plot(
             data[customers_truncation],
@@ -390,7 +389,7 @@ class LTVexploratory:
         customer_revenue_data = customer_revenue_data.pivot(index=self.uuid_col, columns='days_since_install', values=self.value_col).corr().reset_index()
         customer_revenue_data = customer_revenue_data.rename(columns={optimization_window: 'correlation'})
         customer_revenue_data = customer_revenue_data[['days_since_install', 'correlation']]
-        
+
         fig = self.graph.line_plot(
             customer_revenue_data,
             x_axis='days_since_install',
