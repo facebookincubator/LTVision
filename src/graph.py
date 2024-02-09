@@ -527,8 +527,13 @@ class InteractiveGraph():
     def _add_title(fig, title: str) -> None:
         fig.update_layout(title=title)
 
-    def line_plot(self, data: pd.DataFrame):
-        raise NotImplementedError
+    def line_plot(self, data: pd.DataFrame, xaxis:str, yaxis: str, title:str="", precision:int=0):
+        fig = px.line(data, x=xaxis, y=yaxis, title=title)
+        self._apply_standards(fig)
+        self._add_title(fig, title)
+        fig.update_traces(line=dict(width=1))
+        return fig
+
     
     def bar_plot(self, data: pd.DataFrame):
         raise NotImplementedError
@@ -597,12 +602,10 @@ class InteractiveGraph():
         # pad between classes needs to consider #classes and size of image
         pad_size = self.img_shape[1] * (n_nodes - 1) * self.pad_percentage
 
-
         # replicate nodes with the same values. Necessary because each
         # value in nodes represent a node. So we have to create 2 nodes with the same names
         nodes = nodes * 2
         
-
         node = dict(
             pad=pad_size,
             thickness=20,
