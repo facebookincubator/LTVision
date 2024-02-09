@@ -648,5 +648,4 @@ class InteractiveChart():
         # Update the layout of the figure
         self._apply_standards(fig)
         self._add_title(fig, "User Flow Between Classes")
-        # Show the figure
         return fig
