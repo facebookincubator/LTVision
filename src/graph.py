@@ -11,7 +11,9 @@ import numpy as np
 import seaborn as sns
 import matplotlib.pyplot as plt
 from matplotlib.ticker import PercentFormatter, FuncFormatter
-# TODO: remove hard-coded constants inside the code
+import plotly.graph_objects as go
+import plotly.express as px
+from src.aux import lag, cumsum, drop_duplicates
 
 
 class Graph:
@@ -449,3 +451,201 @@ class Graph:
             ax = self.set_ax_standard(ax, xlabel, ylabel, title)
 
         return ax
+
+class InteractiveChart():
+    """
+    This class is mostly an interface to plotly, but with some standards for the visualizations (e.g. font, font size, image shape) pre-defined
+    With this class, it is easier to have all plots in the same standard and similar appereance
+    """
+    def __init__(
+            self,
+            legend_out: bool = False,
+            font:str='Avenir',
+            txt_size:int=14,
+            title_size:int=18,
+            img_shape=(1600, 800),
+            bargap: float=0.1,
+            bar_opacity: float=0.8,
+            pad_percentage: float=0.01):
+            
+
+        """
+        - legend_out: whether the legend of the colors should be 'inside' or outside the plot
+        - 
+        """
+
+        self.legend_out = legend_out
+        self.font = font
+        self.title_size = title_size
+        self.txt_size = txt_size
+        self.img_shape = img_shape
+        self.bargap = bargap
+        self.bar_opacity = bar_opacity
+        self.pad_percentage = pad_percentage
+
+    def _apply_fonts_standards(self, fig):
+        """
+        Apply font standards to all text parts of the 
+        """
+        fig.update_layout(font=dict(family=self.font, size=self.txt_size))
+        fig.update_layout(title_font=dict(family=self.font, size=self.title_size))
+        fig.update_layout( xaxis_title="", yaxis_title="")
+
+    def _apply_figure_standards(self, fig):
+        """
+        Apply standard regarding
+            - background color of the chart: lightest gray 
+            - background color around chart: white
+            - color of the X- and Y-axis: light gray
+            - image size and shape
+        """
+        fig.update_layout(plot_bgcolor="#F1F1F1", paper_bgcolor="white")
+        fig.update_layout(xaxis=dict(linecolor='lightgray'), yaxis=dict(linecolor='lightgray'))
+        fig.update_layout(width=self.img_shape[0], height=self.img_shape[1])
+
+    def _apply_lines_standards(self, fig):
+        fig.update_layout(bargap=self.bargap)
+
+    def _apply_standards(self, fig) -> None:
+        self._apply_fonts_standards(fig)
+        self._apply_figure_standards(fig)
+        self._apply_lines_standards(fig)
+    
+    @staticmethod
+    def _transform_yaxis_in_perc(fig, precision:int=0):
+        fig.update_layout(yaxis_tickformat=f'.{precision}%')
+
+    @staticmethod
+    def _transform_yaxis_in_dollars(fig, precision:int=0):
+        fig.update_layout(yaxis=dict(tickformat=f"$.{precision}"))
+
+    def _transform_yaxis_tickformat(self, fig, tickformat: str, precision: int) -> None:
+        if tickformat == "":
+            fig.update_layout(yaxis_tickformat=f'.{precision}')
+        elif "$" in tickformat:
+            self._transform_yaxis_in_dollars(fig, precision)
+        elif "%" in tickformat:
+            self._transform_yaxis_in_perc(fig, precision)
+        else:
+            raise ValueError(f"Tick formart [{tickformat}] was not recognized. Only possible values are an empty string for numbers, $ for dollars, and % for percentages")
+    
+    @staticmethod
+    def _append_txt_to_yaxis_labels(fig, precision:int=0):
+        fig.update_layout(yaxis=dict(tickformat=f"$.{precision}"))
+
+    @staticmethod
+    def _add_title(fig, title: str) -> None:
+        fig.update_layout(title=title)
+
+    def line_chart(self, data: pd.DataFrame, xaxis:str, yaxis: str, title:str="", precision: int=0, tickformat: str=""):
+        fig = px.line(data, x=xaxis, y=yaxis, title=title)
+        self._transform_yaxis_tickformat(fig, tickformat, precision)
+        self._apply_standards(fig)
+        self._add_title(fig, title)
+        fig.update_traces(line=dict(width=1))
+        return fig
+
+    
+    def bar_chart(self, data: pd.DataFrame, xaxis:str, yaxis: str, title:str="", precision:int=0, tickformat: str=""):
+        fig = px.line(data, x=xaxis, y=yaxis, title=title)
+        self._transform_yaxis_tickformat(fig, tickformat, precision)
+        self._apply_standards(fig)
+        self._add_title(fig, title)
+        fig.update_traces(line=dict(width=1))
+        return fig
+    
+    def histogram_chart(self, data: pd.DataFrame, xaxis:str, yaxis: str, title:str="", precision:int=0):
+        fig = px.histogram(data, x=xaxis, y=yaxis, nbins=data.shape[0], opacity=self.bar_opacity)
+        self._apply_standards(fig)
+        self._transform_yaxis_in_perc(fig, precision)
+        self._add_title(fig, title)
+        return fig
+    
+    def flow_chart(self, data: pd.DataFrame, source:str, target: str, values: str, title: str="", ):
+        """
+        This method creates a dataframe of flow from 'source' to 'target' based on a given quantity
+        It is expected that the data is already orders in a way that it wants to be displayed. If not,
+        the quality of the chart will be compromised, as the classes in 'source' to the equivalent 'targets'
+        won't be in the same order
+        """
+        # Define the nodes and links for the Sankey diagram
+        sources = data[source].to_list()
+        targets = data[target].to_list()
+        quantity = data[values].to_list()
+
+        nodes = drop_duplicates(sources + targets) # find the unique nodes in both source and targets
+        n_nodes = len(nodes)
+        
+        # get the number of colors we need based unique classes. Need to duplicate to make equivalent
+        # classes in [sources] and [targets] have the same colors
+        palette = px.colors.qualitative.Plotly[0:n_nodes] * 2
+
+        # we reference the index of the nodes, not the 'names'
+        sources_idxs = [nodes.index(x) for x in sources]
+        targets_idxs = [(nodes.index(x) + n_nodes) for x in targets]
+
+        def get_horizontal_positions(n_nodes: int) -> List[float]:
+            """
+            Return the horizontal positions for the nodes. First values refers to [sources] and last to [targets]
+            """
+            return [0.001] * n_nodes + [0.999] * n_nodes # they cannot be 0 and 1 because it overlaps with title
+        
+        def get_vertical_positions(sources: list, targets: list, quantity: list, classes_gap: float=0.05) -> List[float]:
+            """
+            Return the vertical positions for the nodes. First values refers to [sources] and last to [targets]
+            """
+            y_positions_source = {}
+            y_positions_target = {}
+            # calculate the vertical size of each node
+            for i, source in enumerate(sources):
+                y_positions_source[source] = y_positions_source.get(source, 0) + quantity[i]
+                y_positions_target[targets[i]] = y_positions_target.get(targets[i], 0) + quantity[i]
+            
+            # Calculate where the node's vertical position should end
+            y_positions_source = cumsum(list(y_positions_source.values()), constant_delta=classes_gap)
+            y_positions_target = cumsum(list(y_positions_target.values()), constant_delta=classes_gap)
+
+            # Lag to get next position, because plotly receives where nodes begin
+            y_positions_source = lag(y_positions_source, 1, coalesce=classes_gap)
+            y_positions_target = lag(y_positions_target, 1, coalesce=classes_gap)
+
+            return y_positions_source + y_positions_target
+        
+        def get_nodes_positions(sources: list, targets: list, quantity: list, n_nodes: int, classes_gap: float=0.05) -> (List[float], List[float]):
+            return get_horizontal_positions(n_nodes), get_vertical_positions(sources, targets, quantity, classes_gap)
+
+        x_positions, y_positions = get_nodes_positions(sources, targets, quantity, n_nodes)
+        # pad between classes needs to consider #classes and size of image
+        pad_size = self.img_shape[1] * (n_nodes - 1) * self.pad_percentage
+
+        # replicate nodes with the same values. Necessary because each
+        # value in nodes represent a node. So we have to create 2 nodes with the same names
+        nodes = nodes * 2
+
+        node = dict(
+            pad=pad_size,
+            thickness=20,
+            line=dict(color='grey', width=0.5),
+            color = palette,
+            x=x_positions,
+            y=y_positions,
+            label=nodes
+        )
+        link = dict(
+            source=sources_idxs,
+            target=targets_idxs,
+            value=quantity
+        )
+
+        # replicate nodes so that the firsts represent the sources and the others the targets
+        nodes = nodes * 2 
+        # # Create the Sankey diagram
+        fig = go.Figure(go.Sankey(
+            arrangement = "snap",
+            node=node,
+            link=link
+        ))
+        # Update the layout of the figure
+        self._apply_standards(fig)
+        self._add_title(fig, "User Flow Between Classes")
+        return fig
