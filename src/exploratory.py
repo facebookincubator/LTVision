@@ -401,6 +401,11 @@ class LTVexploratory:
         
         return fig, customer_revenue_data
 
+    @staticmethod
+    def _classify_spend(x: float, spending_breaks: Dict[str, float]):
+            key = np.argmax(x <= np.array(list(spending_breaks.values())))
+            return list(spending_breaks.keys())[key]
+    
     def plot_paying_customers_flow(self, days_limit: int, early_limit: int, spending_breaks: Dict[str, float]):
         """
         Plots the flow of customers from early spending class to late spending class
@@ -409,10 +414,6 @@ class LTVexploratory:
             early_limit: number of days of the event since registration that is considered 'early'. Usually refers to optimization window of marketing platforms
             spending_breaks: dictionary, in which the keys defines the name of the class and the values the upper limit of the spending associated with the class. Lower limit is considered to be the lower limit of the previous class, else 0
         """
-
-        def classify_spend(x: float):
-            key = np.argmax(x <= np.array(list(spending_breaks.values())))
-            return list(spending_breaks.keys())[key]
 
 
         # Select only customers that are at least [days_limit] days old
@@ -440,8 +441,8 @@ class LTVexploratory:
             .reset_index()
         )
 
-        data['early_class'] = data['early_revenue'].apply(classify_spend)
-        data['late_class'] = data['late_revenue'].apply(classify_spend)
+        data['early_class'] = data['early_revenue'].apply(lambda x: self._classify_spend(x, spending_breaks))
+        data['late_class'] = data['late_revenue'].apply(lambda x: self._classify_spend(x, spending_breaks))
 
         def summary(data: pd.DataFrame):
             output  = {}
@@ -534,7 +535,7 @@ class LTVexploratory:
             )
 
             # replicate nodes so that the firsts represent the sources and the others the targets
-            nodes = nodes * 2 
+            nodes = nodes * 2
             # # Create the Sankey diagram
             fig = go.Figure(go.Sankey(
                 node=node,
@@ -546,3 +547,72 @@ class LTVexploratory:
             return fig
 
         return _plot_sankey(data['early_class'].to_list(), data['late_class'].to_list(), data['customers'].to_list()), data
+
+
+    def estimate_highest_impact(self, days_limit: int, spending_breaks: Dict[str, float]):
+        """
+        Estimate an upper-bound of the impact of using a predicted LTV (pLTV) strategy for campaign optimization.
+        The estimate is obtained that we will have the same number of paying customers, but that all paying 
+        customers will have an LTV until [days_limit] equal to the average LTV at day [days_limit] of the 
+        current highest spending users.
+
+        Example: Assume that out of 10000 customers, 200 are paying customers. And out of these 200 customers
+            - 100 are considered low-spend, with average LTV of $5
+            - 60 are considered medium-spend, with average LTV of $12
+            - 40 are considered high-spend, with average LTV of $100
+
+            The impact is estimated by applying the average LTV of the high-spenders (i.e. $100) to all paying customers:
+            Impact = New Revenue - Old Revenue
+                   = 100*(100+60+40) - (100*5 + 60*12 + 40*100)
+                   = 20000 - 5220
+                   = $14780
+        """
+        end_events_date = self.joined_df[self.event_time_col].max()
+        data = self.joined_df[
+            (end_events_date - self.joined_df[self.registration_time_col]).dt.days
+            >= days_limit
+        ].copy()
+
+        # Remove customers who never had a purchase and ensure all customers have the same opportunity window
+        data = data[
+            (data[self.event_time_col] - data[self.registration_time_col]).dt.days
+            <= days_limit
+        ]
+
+        # Count how many purchase customers had (defined by value > 0) and then how many customers are in each place
+        data = data[data[self.value_col] > 0]
+        data['dsi'] = ((data[self.event_time_col] - data[self.registration_time_col]).dt.days).fillna(0)
+        data['revenue'] = data.apply(lambda x: (x['dsi'] <= days_limit) * x[self.value_col], axis=1)
+
+        data = (
+            data
+            .groupby(self.uuid_col)['revenue'].sum()
+            .reset_index()
+        )
+
+        data['class'] = data['revenue'].apply(lambda x: self._classify_spend(x, spending_breaks))
+        data = (
+            data
+            .groupby(['class'])['revenue']
+            .agg(['sum', 'mean', 'count'])
+            .reset_index()
+            .rename(columns={"sum": "current_total_revenue", "mean": "current_average_ltv"})
+        )
+
+        # Apply the average LTV of the highest-spending class to all spending classes
+        highest_spending_class_ltv = data['current_average_ltv'].max()
+        n_paying_customers = data['count'].sum()
+        data['new_average_ltv'] = highest_spending_class_ltv
+        data['new_total_revenue'] = data['current_total_revenue']/data['current_average_ltv']*data['new_average_ltv']
+
+        abs_impact = data['new_total_revenue'].sum() - data['current_total_revenue'].sum()
+        rel_impact = data['new_total_revenue'].sum() / data['current_total_revenue'].sum() - 1
+
+        output_txt = f"""
+        By adopting a predicted LTV (pLTV) based strategy for your marketing campaigns, we estimate up to {100*rel_impact:.1f}% increase in revenue.
+        This increase represents ${abs_impact:.0f} in revenue for the time period and scope used by the data provided.  
+        We find this upper bound in the impact of the pLTV strategy by assuming that all paying customers ({n_paying_customers}) will have an LTV equal to the average LTV of the highest-spending class of users (i.e ${highest_spending_class_ltv:.2f})
+        """
+        print(output_txt)
+        
+        return data
