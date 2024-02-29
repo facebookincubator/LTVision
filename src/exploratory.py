@@ -358,7 +358,8 @@ class LTVexploratory:
     def plot_early_late_revenue_correlation(
         self,
         days_limit: int,
-        optimization_window: int=7) -> None:
+        optimization_window: int=7,
+        interval_size: int=None) -> None:
         """
         Calculates and plots correlation between customer-level revenue
         The correlation is between the revenue in the first [optimization_window] days after registration and the following [days_limit - optimization_window] days
@@ -367,6 +368,7 @@ class LTVexploratory:
         Inputs
              - days_limit: max number of days after registration to be considered in the analysis
              - optimization_window: number of days from registration that the optimization of the marketing campaigns are operated
+             - interval_size: number of days between two values shown in the correlation matrix. If None, the method finds the best interval based in the data size
         """
         # Filters customers to ensure that all have the same opportunity to generate revenue until [days_limits] after registration
         end_events_date = self.joined_df[self.event_time_col].max()
@@ -388,19 +390,18 @@ class LTVexploratory:
             [self.value_col].sum().reset_index()
         )
         # Calculate correlation, extract the correlation only for the 'early revenue' and plot it
-        customer_revenue_data = customer_revenue_data.pivot(index=self.uuid_col, columns='days_since_install', values=self.value_col).corr().reset_index()
-        customer_revenue_data = customer_revenue_data.rename(columns={optimization_window: 'correlation'})
-        customer_revenue_data = customer_revenue_data[['days_since_install', 'correlation']]
+        customer_revenue_data = customer_revenue_data.pivot(index=self.uuid_col, columns='days_since_install', values=self.value_col).reset_index()
+        customer_revenue_data = customer_revenue_data.drop(self.uuid_col, axis=1).corr()
 
-        fig = self.graph.line_plot(
-            customer_revenue_data,
-            x_axis='days_since_install',
-            y_axis='correlation',
-            xlabel='Days Since Customer Registration',
-            ylabel='Pearson Correlation',
-            title=f'Correlation (Y) between revenue until {optimization_window} after registration with revenue until (X) days after registration'
-            )
-        
+        # Filter out only some of the days, otherwise there will have too much granularity for visualization
+        interval_size = interval_size if interval_size is not None else np.round((days_limit - optimization_window) / 20)
+        interval_size = interval_size.astype(int) # doesn't work if applied directly on the output of np.round for some reason
+        days_of_interest = [i for i in range(optimization_window, days_limit, interval_size)]
+        customer_revenue_data = customer_revenue_data[days_of_interest][customer_revenue_data.index.isin(days_of_interest)]
+        mask = np.zeros_like(customer_revenue_data, dtype=bool)
+        mask[np.tril_indices_from(mask)] = True
+
+        fig = self.graph.heatmap_plot(customer_revenue_data, title="Correlation matrix of revenue per user by days since registration\n")
         return fig, customer_revenue_data
 
     @staticmethod
