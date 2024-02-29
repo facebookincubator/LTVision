@@ -440,6 +440,71 @@ class Graph:
             ax = sns.heatmap(
                 data=data,
                 annot=annotate,
+                mask=mask,
+                fmt=fmt,
+                cmap=cmap,
+                cbar=cbar,
+                linewidths=0.5,
+                linecolor='gray',
+                annot_kws=annot_fmt
+                )
+
+            ax = self.set_ax_standard(ax, xlabel, ylabel, title)
+
+        return ax
+    
+
+    def heatmap_plot(
+        self,
+        pivoted_data: pd.DataFrame,
+        fmt: str='.1%',
+        cmap: str='crest',
+        cbar: bool=False,
+        annotate: bool=True,
+        annot_font_size: int=20,
+        xlabel="",
+        ylabel="",
+        title: str = "",
+    ) -> sns.axisgrid.FacetGrid:
+        """
+        This method is based on the sns.heatmap method, and is meant to plot the values of interest as a 2D matrix
+
+        In addition to calling the seaborn.relplot method, this method adds the following 'features'
+        - sets the style to the class style (default: whitegrid)
+        - defines the image size (default: (20, 10))
+        - adds the baseline horizontal line and text, if defined
+        - adds the floor line, if class parameter is true
+        - makes all the text use the same font (default: Avenir)
+        - configure the legends parameters
+        - adds the title for the plot
+        - filter a subset of the provided data if data_filter is specified. If it is, uses the data_filter as the command for the 'query' in the data
+
+        Inputs
+            pivoted_data: Data to be plotted. Should already be pivoted
+            fmt: formatting to be applied to the annotations
+            cmap: color map for the values in the annotations
+            cbar: whether to show the color bar that indicates what each color mean numerically
+            annotate: whether we want to annotate
+            annot_font_size: the annotation font size
+            xlabel: label to be shown in the X-axis
+            ylabel: label to be shown in the Y-axis
+            title: str = "",
+            data_filter: str = None,
+        """
+
+        
+        # add a mask to make the matrix (upper) triangular, cleaning it up
+        mask = np.ones_like(pivoted_data, dtype=bool)
+        mask[np.triu_indices_from(mask)] = False
+
+        annot_fmt = {'fontsize': annot_font_size}
+
+        with sns.axes_style(self.plot_style):
+
+            ax = sns.heatmap(
+                data=pivoted_data,
+                annot=annotate,
+                mask=mask,
                 fmt=fmt,
                 cmap=cmap,
                 cbar=cbar,
