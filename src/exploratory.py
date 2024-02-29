@@ -12,7 +12,7 @@ from pandas.api.types import is_datetime64_any_dtype , is_object_dtype, is_any_r
 import plotly.graph_objects as go
 import plotly.express as px
 import seaborn as sns
-from src.graph import Graph
+from src.graph import Graph, InteractiveChart
 from src.aux import lag, cumsum, drop_duplicates
 
 sns.set_style("whitegrid")
@@ -36,6 +36,8 @@ class LTVexploratory:
         self._period = 7
         self._period_for_ltv = 7 * 10
         self.graph = Graph()
+        self.interactive_chart = InteractiveChart()
+
         # store information about the columns of the dataframes
         self.uuid_col = uuid_col
         self.registration_time_col = registration_time_col
@@ -465,88 +467,9 @@ class LTVexploratory:
         )
         data['customers'] = data['customers'] / data['customers'].sum()
 
-        def _plot_sankey(sources: list, targets: list, quantity: list) -> go.Figure:
-            """
-            This method creates a dataframe of flow from 'source' to 'target' based on a given quantity
-            It is expected that the data is already orders in a way that it wants to be displayed. If not,
-            the quality of the chart will be compromised, as the classes in 'source' to the equivalent 'targets'
-            won't be in the same order
-            """
-            # Define the nodes and links for the Sankey diagram
-            nodes = drop_duplicates(sources + targets) # find the unique nodes in both source and targets
-            n_nodes = len(nodes)
-            
-            # get the number of colors we need based unique classes. Need to duplicate to make equivalent
-            # classes in [sources] and [targets] have the same colors
-            palette = px.colors.qualitative.Plotly[0:n_nodes] * 2
+        fig = self.interactive_chart.flow_chart(data, 'early_class', 'late_class', 'customers', title='User Flow Between Classes')
 
-            # we reference the index of the nodes, not the 'names'
-            sources_idxs = [nodes.index(x) for x in sources]
-            targets_idxs = [(nodes.index(x) + n_nodes) for x in targets]
-
-            def get_horizontal_positions(n_nodes: int) -> List[float]:
-                """
-                Return the horizontal positions for the nodes. First values refers to [sources] and last to [targets]
-                """
-                return [0.001] * n_nodes + [0.999] * n_nodes # they cannot be 0 and 1 because it overlaps with title
-            
-            def get_vertical_positions(sources: list, targets: list, quantity: list, classes_gap: float=0.05) -> List[float]:
-                """
-                Return the vertical positions for the nodes. First values refers to [sources] and last to [targets]
-                """
-                y_positions_source = {}
-                y_positions_target = {}
-                # calculate the vertical size of each node
-                for i, source in enumerate(sources):
-                    y_positions_source[source] = y_positions_source.get(source, 0) + quantity[i]
-                    y_positions_target[targets[i]] = y_positions_target.get(targets[i], 0) + quantity[i]
-                
-                # Calculate where the node's vertical position should end
-                y_positions_source = cumsum(list(y_positions_source.values()), constant_delta=classes_gap)
-                y_positions_target = cumsum(list(y_positions_target.values()), constant_delta=classes_gap)
-
-                # Lag to get next position, because plotly receives where nodes begin
-                y_positions_source = lag(y_positions_source, 1, coalesce=classes_gap)
-                y_positions_target = lag(y_positions_target, 1, coalesce=classes_gap)
-
-                return y_positions_source + y_positions_target
-            
-            def get_nodes_positions(sources: list, targets: list, quantity: list, n_nodes: int) -> (List[float], List[float]):
-                return get_horizontal_positions(n_nodes), get_vertical_positions(sources, targets, quantity)
-
-            x_positions, y_positions = get_nodes_positions(sources, targets, quantity, n_nodes)
-            # replicate nodes with the same values. Necessary because each
-            # value in nodes represent a node. So we have to create 2 nodes with the same names
-            nodes = nodes * 2
-
-            node = dict(
-                pad=15,
-                thickness=20,
-                line=dict(color='grey', width=0.5),
-                color = palette,
-                x=x_positions,
-                y=y_positions,
-                label=nodes
-            )
-            link = dict(
-                source=sources_idxs,
-                target=targets_idxs,
-                value=quantity
-            )
-
-            # replicate nodes so that the firsts represent the sources and the others the targets
-            nodes = nodes * 2
-            # # Create the Sankey diagram
-            fig = go.Figure(go.Sankey(
-                node=node,
-                link=link
-            ))
-            # Update the layout of the figure
-            fig.update_layout(title_text='User Flow Between Classes', font_size=10)
-            # Show the figure
-            return fig
-
-        return _plot_sankey(data['early_class'].to_list(), data['late_class'].to_list(), data['customers'].to_list()), data
+        return fig, data
 
 
     def estimate_highest_impact(self, days_limit: int, spending_breaks: Dict[str, float]):
