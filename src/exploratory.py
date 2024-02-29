@@ -409,16 +409,14 @@ class LTVexploratory:
             key = np.argmax(x <= np.array(list(spending_breaks.values())))
             return list(spending_breaks.keys())[key]
     
-    def plot_paying_customers_flow(self, days_limit: int, early_limit: int, spending_breaks: Dict[str, float]):
+    def _group_users_by_spend(self, days_limit: int, early_limit: int, spending_breaks: Dict[str, float]) -> pd.DataFrame:
         """
-        Plots the flow of customers from early spending class to late spending class
+        Group users based  on their early (early_limit) and late (days_limit) revenue
         Inputs:
             days_limit: number of days of the event since registration used to define the late spending class
             early_limit: number of days of the event since registration that is considered 'early'. Usually refers to optimization window of marketing platforms
             spending_breaks: dictionary, in which the keys defines the name of the class and the values the upper limit of the spending associated with the class. Lower limit is considered to be the lower limit of the previous class, else 0
         """
-
-
         # Select only customers that are at least [days_limit] days old
         end_events_date = self.joined_df[self.event_time_col].max()
         data = self.joined_df[
@@ -458,7 +456,7 @@ class LTVexploratory:
             output['median_late_ltv'] = data['late_revenue'].median()
             return pd.Series(output)
                 
-        data = (
+        return (
             data
             .groupby(['early_class', 'late_class'])
             [[self.uuid_col, 'early_revenue', 'late_revenue']]
@@ -466,6 +464,17 @@ class LTVexploratory:
             .sort_values(['early_ltv', 'late_ltv'])
             .reset_index()
         )
+    
+    def plot_paying_customers_flow(self, days_limit: int, early_limit: int, spending_breaks: Dict[str, float]):
+        """
+        Plots the flow of customers from early spending class to late spending class
+        Inputs:
+            days_limit: number of days of the event since registration used to define the late spending class
+            early_limit: number of days of the event since registration that is considered 'early'. Usually refers to optimization window of marketing platforms
+            spending_breaks: dictionary, in which the keys defines the name of the class and the values the upper limit of the spending associated with the class. Lower limit is considered to be the lower limit of the previous class, else 0
+        """
+
+        data = self._group_users_by_spend(days_limit, early_limit, spending_breaks)
         data['customers'] = data['customers'] / data['customers'].sum()
 
         fig = self.interactive_chart.flow_chart(data, 'early_class', 'late_class', 'customers', title='User Flow Between Classes')
@@ -473,7 +482,7 @@ class LTVexploratory:
         return fig, data
 
 
-    def estimate_highest_impact(self, days_limit: int, spending_breaks: Dict[str, float]):
+     def estimate_highest_impact(self, days_limit: int, spending_breaks: Dict[str, float]):
         """
         Estimate an upper-bound of the impact of using a predicted LTV (pLTV) strategy for campaign optimization.
         The estimate is obtained that we will have the same number of paying customers, but that all paying 
