@@ -518,7 +518,7 @@ class Graph:
 
         return ax
 
-class InteractiveChart():
+class InteractiveChart:
     """
     This class is mostly an interface to plotly, but with some standards for the visualizations (e.g. font, font size, image shape) pre-defined
     With this class, it is easier to have all plots in the same standard and similar appereance
@@ -612,12 +612,11 @@ class InteractiveChart():
         return fig
 
     
-    def bar_chart(self, data: pd.DataFrame, xaxis:str, yaxis: str, title:str="", precision:int=0, tickformat: str=""):
-        fig = px.line(data, x=xaxis, y=yaxis, title=title)
+    def bar_chart(self, data: pd.DataFrame, xaxis:str, yaxis: str, color = None, title:str="", precision:int=0, tickformat: str=""):
+        fig = px.bar(data, x=xaxis, y=yaxis, color=color, title=title)
         self._transform_yaxis_tickformat(fig, tickformat, precision)
         self._apply_standards(fig)
         self._add_title(fig, title)
-        fig.update_traces(line=dict(width=1))
         return fig
     
     def histogram_chart(self, data: pd.DataFrame, xaxis:str, yaxis: str, title:str="", precision:int=0):
