@@ -440,7 +440,6 @@ class Graph:
             ax = sns.heatmap(
                 data=data,
                 annot=annotate,
-                mask=mask,
                 fmt=fmt,
                 cmap=cmap,
                 cbar=cbar,
@@ -461,7 +460,7 @@ class Graph:
         cmap: str='crest',
         cbar: bool=False,
         annotate: bool=True,
-        annot_font_size: int=20,
+        annot_font_size: int=None,
         xlabel="",
         ylabel="",
         title: str = "",
@@ -497,6 +496,8 @@ class Graph:
         mask = np.ones_like(pivoted_data, dtype=bool)
         mask[np.triu_indices_from(mask)] = False
 
+        # adapt annot_font_size depending on size of the data if None, else use the one defined
+        annot_font_size = 200 / len(pivoted_data) if annot_font_size is None else annot_font_size
         annot_fmt = {'fontsize': annot_font_size}
 
         with sns.axes_style(self.plot_style):
@@ -509,7 +510,7 @@ class Graph:
                 cmap=cmap,
                 cbar=cbar,
                 linewidths=0.5,
-                linecolor='gray',
+                linecolor='white',
                 annot_kws=annot_fmt
                 )
 
