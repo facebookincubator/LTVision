@@ -484,7 +484,6 @@ class LTVexploratory:
 
     def estimate_highest_impact(
             self,
-            early_limit: int,
             days_limit: int,
             spending_breaks: Dict[str, float],
             population_increase: Dict[str, float]
@@ -492,14 +491,12 @@ class LTVexploratory:
         """
         Estimate an upper-bound of the impact of using a predicted LTV (pLTV) strategy for campaign optimization.
         The estimate is calculated by increasing the number of customers according to [population_increase] and their
-        classification at an early moment [early_limit]. 
+        classification at a later moment [days_limit]. 
         The impact is calculated by seeing the increase in revenue at a late date [days limit] caused by this increase
         in the number of users.
         The classification of users follow the same principle of the method [plot_paying_customers_flow()]
 
         Inputs:
-            - early_limit: the number of days since registration to define as the 'early' revenue classification of a 
-                           customer. Usually this value is the same as the optimization window of a marketing campaign
             - days_limit: the number of days since registration to define as the 'late' revenue classification of a 
                            customer. Usually this value is considered the effective number of days for the LTV
             - spending_breaks: the classification of a user depending on its revenue
@@ -508,27 +505,27 @@ class LTVexploratory:
 
         Example:
             population_increase = {
-                'No Spend': 0.1, 
+                'Low Spend': 0.1, 
                 'Medium Spend: 0.2,
                 'High Spend: 0.05
                 }
             In this example, we assume that the LTV Optimization is going to:
-                - increase the number of users that at the beggining didn't generate any revenueby 10%
-                - increase the number of users that at the had medium revenue at the start by 20%
-                - increase the number of users that already had high revenue at the beggining by 5%
+                - increase the number of users that generated low revenue by 10%
+                - increase the number of users that at the had medium revenue by 20%
+                - increase the number of users that already had high revenue by 5%
                 - all other classifications not specified remain unchaged
             
         """
         # Get users grouped by their early and late revenue
-        data = self._group_users_by_spend(days_limit, early_limit, spending_breaks)
+        data = self._group_users_by_spend(days_limit, 0, spending_breaks)
 
         # Apply the average LTV of the highest-spending class to all spending classes
-        data['assumed_new_late_revenue'] = data['late_revenue'] * (data['early_class'].map(population_increase).fillna(0) + 1)
-        data['assumed_new_customers'] = data['customers'] * (data['early_class'].map(population_increase).fillna(0) + 1)
+        data['assumed_new_late_revenue'] = data['late_revenue'] * (data['late_class'].map(population_increase).fillna(0) + 1)
+        data['assumed_new_customers'] = data['customers'] * (data['late_class'].map(population_increase).fillna(0) + 1)
         data = data[['early_class', 'late_class', 'customers', 'late_revenue', 'assumed_new_customers', 'assumed_new_late_revenue']]
         data['abs_revenue_increase'] = data['assumed_new_late_revenue'] - data['late_revenue']
 
-        abs_impact = np.sum(data['abs_revenue_increase']) 
+        abs_impact = np.sum(data['abs_revenue_increase'])
         rel_impact = abs_impact / np.sum(data['late_revenue'])
 
         output_txt = f"""
