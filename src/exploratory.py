@@ -482,14 +482,14 @@ class LTVexploratory:
         return fig, data
 
 
-    def estimate_highest_impact(
+    def estimate_ltv_impact(
             self,
             days_limit: int,
             spending_breaks: Dict[str, float],
             population_increase: Dict[str, float]
             ):
         """
-        Estimate an upper-bound of the impact of using a predicted LTV (pLTV) strategy for campaign optimization.
+        Estimate the impact of using a predicted LTV (pLTV) strategy for campaign optimization.
         The estimate is calculated by increasing the number of customers according to [population_increase] and their
         classification at a later moment [days_limit]. 
         The impact is calculated by seeing the increase in revenue at a late date [days limit] caused by this increase
