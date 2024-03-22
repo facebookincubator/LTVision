@@ -409,16 +409,14 @@ class LTVexploratory:
             key = np.argmax(x <= np.array(list(spending_breaks.values())))
             return list(spending_breaks.keys())[key]
     
-    def plot_paying_customers_flow(self, days_limit: int, early_limit: int, spending_breaks: Dict[str, float]):
+    def _group_users_by_spend(self, days_limit: int, early_limit: int, spending_breaks: Dict[str, float]) -> pd.DataFrame:
         """
-        Plots the flow of customers from early spending class to late spending class
+        Group users based  on their early (early_limit) and late (days_limit) revenue
         Inputs:
             days_limit: number of days of the event since registration used to define the late spending class
             early_limit: number of days of the event since registration that is considered 'early'. Usually refers to optimization window of marketing platforms
             spending_breaks: dictionary, in which the keys defines the name of the class and the values the upper limit of the spending associated with the class. Lower limit is considered to be the lower limit of the previous class, else 0
         """
-
-
         # Select only customers that are at least [days_limit] days old
         end_events_date = self.joined_df[self.event_time_col].max()
         data = self.joined_df[
@@ -458,7 +456,7 @@ class LTVexploratory:
             output['median_late_ltv'] = data['late_revenue'].median()
             return pd.Series(output)
                 
-        data = (
+        return (
             data
             .groupby(['early_class', 'late_class'])
             [[self.uuid_col, 'early_revenue', 'late_revenue']]
@@ -466,6 +464,17 @@ class LTVexploratory:
             .sort_values(['early_ltv', 'late_ltv'])
             .reset_index()
         )
+    
+    def plot_paying_customers_flow(self, days_limit: int, early_limit: int, spending_breaks: Dict[str, float]):
+        """
+        Plots the flow of customers from early spending class to late spending class
+        Inputs:
+            days_limit: number of days of the event since registration used to define the late spending class
+            early_limit: number of days of the event since registration that is considered 'early'. Usually refers to optimization window of marketing platforms
+            spending_breaks: dictionary, in which the keys defines the name of the class and the values the upper limit of the spending associated with the class. Lower limit is considered to be the lower limit of the previous class, else 0
+        """
+
+        data = self._group_users_by_spend(days_limit, early_limit, spending_breaks)
         data['customers'] = data['customers'] / data['customers'].sum()
 
         fig = self.interactive_chart.flow_chart(data, 'early_class', 'late_class', 'customers', title='User Flow Between Classes')
@@ -473,69 +482,56 @@ class LTVexploratory:
         return fig, data
 
 
-    def estimate_highest_impact(self, days_limit: int, spending_breaks: Dict[str, float]):
+    def estimate_ltv_impact(
+            self,
+            days_limit: int,
+            spending_breaks: Dict[str, float],
+            population_increase: Dict[str, float]
+            ):
         """
-        Estimate an upper-bound of the impact of using a predicted LTV (pLTV) strategy for campaign optimization.
-        The estimate is obtained that we will have the same number of paying customers, but that all paying 
-        customers will have an LTV until [days_limit] equal to the average LTV at day [days_limit] of the 
-        current highest spending users.
+        Estimate the impact of using a predicted LTV (pLTV) strategy for campaign optimization.
+        The estimate is calculated by increasing the number of customers according to [population_increase] and their
+        classification at a later moment [days_limit]. 
+        The impact is calculated by seeing the increase in revenue at a late date [days limit] caused by this increase
+        in the number of users.
+        The classification of users follow the same principle of the method [plot_paying_customers_flow()]
 
-        Example: Assume that out of 10000 customers, 200 are paying customers. And out of these 200 customers
-            - 100 are considered low-spend, with average LTV of $5
-            - 60 are considered medium-spend, with average LTV of $12
-            - 40 are considered high-spend, with average LTV of $100
+        Inputs:
+            - days_limit: the number of days since registration to define as the 'late' revenue classification of a 
+                           customer. Usually this value is considered the effective number of days for the LTV
+            - spending_breaks: the classification of a user depending on its revenue
+            - population_increase: a dictionary of dictionaries. The initial keys refers the early revenue classification
+                                   and the values the relative increase for them
 
-            The impact is estimated by applying the average LTV of the high-spenders (i.e. $100) to all paying customers:
-            Impact = New Revenue - Old Revenue
-                   = 100*(100+60+40) - (100*5 + 60*12 + 40*100)
-                   = 20000 - 5220
-                   = $14780
+        Example:
+            population_increase = {
+                'Low Spend': 0.1, 
+                'Medium Spend: 0.2,
+                'High Spend: 0.05
+                }
+            In this example, we assume that the LTV Optimization is going to:
+                - increase the number of users that generated low revenue by 10%
+                - increase the number of users that at the had medium revenue by 20%
+                - increase the number of users that already had high revenue by 5%
+                - all other classifications not specified remain unchaged
+            
         """
-        end_events_date = self.joined_df[self.event_time_col].max()
-        data = self.joined_df[
-            (end_events_date - self.joined_df[self.registration_time_col]).dt.days
-            >= days_limit
-        ].copy()
-
-        # Remove customers who never had a purchase and ensure all customers have the same opportunity window
-        data = data[
-            (data[self.event_time_col] - data[self.registration_time_col]).dt.days
-            <= days_limit
-        ]
-
-        # Count how many purchase customers had (defined by value > 0) and then how many customers are in each place
-        data = data[data[self.value_col] > 0]
-        data['dsi'] = ((data[self.event_time_col] - data[self.registration_time_col]).dt.days).fillna(0)
-        data['revenue'] = data.apply(lambda x: (x['dsi'] <= days_limit) * x[self.value_col], axis=1)
-
-        data = (
-            data
-            .groupby(self.uuid_col)['revenue'].sum()
-            .reset_index()
-        )
-
-        data['class'] = data['revenue'].apply(lambda x: self._classify_spend(x, spending_breaks))
-        data = (
-            data
-            .groupby(['class'])['revenue']
-            .agg(['sum', 'mean', 'count'])
-            .reset_index()
-            .rename(columns={"sum": "current_total_revenue", "mean": "current_average_ltv"})
-        )
+        # Get users grouped by their early and late revenue
+        data = self._group_users_by_spend(days_limit, 0, spending_breaks)
 
         # Apply the average LTV of the highest-spending class to all spending classes
-        highest_spending_class_ltv = data['current_average_ltv'].max()
-        n_paying_customers = data['count'].sum()
-        data['new_average_ltv'] = highest_spending_class_ltv
-        data['new_total_revenue'] = data['current_total_revenue']/data['current_average_ltv']*data['new_average_ltv']
+        data['assumed_new_late_revenue'] = data['late_revenue'] * (data['late_class'].map(population_increase).fillna(0) + 1)
+        data['assumed_new_customers'] = data['customers'] * (data['late_class'].map(population_increase).fillna(0) + 1)
+        data = data[['early_class', 'late_class', 'customers', 'late_revenue', 'assumed_new_customers', 'assumed_new_late_revenue']]
+        data['abs_revenue_increase'] = data['assumed_new_late_revenue'] - data['late_revenue']
 
-        abs_impact = data['new_total_revenue'].sum() - data['current_total_revenue'].sum()
-        rel_impact = data['new_total_revenue'].sum() / data['current_total_revenue'].sum() - 1
+        abs_impact = np.sum(data['abs_revenue_increase'])
+        rel_impact = abs_impact / np.sum(data['late_revenue'])
 
         output_txt = f"""
         By adopting a predicted LTV (pLTV) based strategy for your marketing campaigns, we estimate up to {100*rel_impact:.1f}% increase in revenue.
         This increase represents ${abs_impact:.0f} in revenue for the time period and scope used by the data provided.  
-        We find this upper bound in the impact of the pLTV strategy by assuming that all paying customers ({n_paying_customers}) will have an LTV equal to the average LTV of the highest-spending class of users (i.e ${highest_spending_class_ltv:.2f})
+        We find this  impact of the pLTV strategy by assuming an increase in the number of paying customers as passed down by argument [population_increase], and assuming that (1) the average LTVs don't change, and (2) the number of users in other classes don't change
         """
         print(output_txt)
         
