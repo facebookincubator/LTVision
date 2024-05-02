@@ -442,8 +442,21 @@ class LTVexploratory:
             .reset_index()
         )
 
-        data['early_class'] = data['early_revenue'].apply(lambda x: self._classify_spend(x, spending_breaks))
-        data['late_class'] = data['late_revenue'].apply(lambda x: self._classify_spend(x, spending_breaks))
+        # Adding default spending breaks if there was none.
+        if len(spending_breaks) == 0:
+            zero_mask = data['late_revenue'] != 0
+            non_zero_data = data[zero_mask]
+            spending_breaks['No spend'] = 0
+            spending_breaks['Low spend'] = np.percentile(non_zero_data['late_revenue'], 33.33).round(2)
+            spending_breaks['Medium spend'] = np.percentile(non_zero_data['late_revenue'], 66.67).round(2)
+            spending_breaks['High spend'] = (data['late_revenue'].max() + 1).round(0)
+            print(spending_breaks)
+
+        # Spending breaks needs to be sorted in ascending order
+        sorted_spending_breaks = dict(sorted(spending_breaks.items(), key=lambda x: x[1]))
+
+        data['early_class'] = data['early_revenue'].apply(lambda x: self._classify_spend(x, sorted_spending_breaks))
+        data['late_class'] = data['late_revenue'].apply(lambda x: self._classify_spend(x, sorted_spending_breaks))
 
         def summary(data: pd.DataFrame):
             output  = {}
