@@ -748,9 +748,8 @@ def save_plot(fig, file_path: str, dpi: int=200) -> None:
     elif isinstance(fig, plotly.graph_objs._figure.Figure):
         # assumes image display of 4k (3840 x 2160) pixels and (24.5 x 14.6) inches.
         current_dpi = 2160 / 14.6
-
-        rescaled_height = fig.layout.height * dpi / current_dpi 
-        rescaled_width = fig.layout.width * dpi / current_dpi 
+        rescaled_height = fig.layout.height * dpi / current_dpi
+        rescaled_width = fig.layout.width * dpi / current_dpi
         fig.write_image(file_path, height=rescaled_height, width=rescaled_width)
     elif isinstance(fig, matplotlib.figure.Figure):
         fig.savefig(file_path, bbox_inches="tight", dpi=dpi)
