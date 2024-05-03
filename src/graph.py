@@ -529,12 +529,12 @@ class InteractiveChart:
             self,
             legend_out: bool = False,
             font:str='Avenir',
+            txt_size:int=14,
+            title_size:int=18,
             img_shape=(1200, 600),
             bargap: float=0.1,
             bar_opacity: float=0.8,
-            pad_percentage: float=0.01,
-            txt_size_proportion: float=None,
-            title_size_proportion: float=None,
+            pad_percentage: float=0.01
             ):
         """
         - legend_out: whether the legend of the colors should be 'inside' or outside the plot
@@ -543,29 +543,12 @@ class InteractiveChart:
 
         self.legend_out = legend_out
         self.font = font
+        self.title_size = title_size
+        self.txt_size = txt_size
         self.img_shape = img_shape
         self.bargap = bargap
         self.bar_opacity = bar_opacity
         self.pad_percentage = pad_percentage
-
-        self.txt_size_proportion = 0.0175 if txt_size_proportion is None else txt_size_proportion
-        self.title_size_proportion = 0.0175 if title_size_proportion is None else title_size_proportion
-        self.title_size = self._normalize_txt_size()
-        self.txt_size = self._normalize_txt_size()
-
-    def _normalize_txt_size(self):
-        """
-        Normalize txt size based on the number of pixels of the image
-        Obs: value of [0.0175] found from using font 28 and img height 1600 to be comfortable
-        """
-        return self.txt_size_proportion * self.img_shape[1]
-
-    def _normalize_title_size(self):
-        """
-        Normalize title size based on the number of pixels of the image
-        Obs: value of [0.0225] found from using font 28 and img height 1600 to be comfortable
-        """
-        return self.title_size_proportion * self.img_shape[1]
 
     def _apply_fonts_standards(self, fig):
         """
