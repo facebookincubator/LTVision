@@ -19,3 +19,6 @@ client_notebooks/
 
 #Ignore testing files for the moment
 pytest/
+
+#Ignore output images to reduce repository size
+images/
