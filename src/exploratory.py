@@ -406,13 +406,14 @@ class LTVexploratory:
             key = np.argmax(x <= np.array(list(spending_breaks.values())))
             return list(spending_breaks.keys())[key]
     
-    def _group_users_by_spend(self, days_limit: int, early_limit: int, spending_breaks: Dict[str, float]) -> pd.DataFrame:
+    def _group_users_by_spend(self, days_limit: int, early_limit: int, spending_breaks: Dict[str, float], end_spending_breaks: Dict[str, float]) -> pd.DataFrame:
         """
         Group users based  on their early (early_limit) and late (days_limit) revenue
         Inputs:
             days_limit: number of days of the event since registration used to define the late spending class
             early_limit: number of days of the event since registration that is considered 'early'. Usually refers to optimization window of marketing platforms
             spending_breaks: dictionary, in which the keys defines the name of the class and the values the upper limit of the spending associated with the class. Lower limit is considered to be the lower limit of the previous class, else 0
+            end_spending_breaks: dictionary, in which the keys defines the name of the class and the values the upper limit of the spending associated with the class. Lower limit is considered to be the lower limit of the previous class, else 0
         """
         # Select only customers that are at least [days_limit] days old
         end_events_date = self.joined_df[self.event_time_col].max()
@@ -439,8 +440,33 @@ class LTVexploratory:
             .reset_index()
         )
 
-        data['early_class'] = data['early_revenue'].apply(lambda x: self._classify_spend(x, spending_breaks))
-        data['late_class'] = data['late_revenue'].apply(lambda x: self._classify_spend(x, spending_breaks))
+        # Adding default spending breaks if there was none.
+        if len(spending_breaks) == 0:
+            zero_mask = data['early_revenue'] != 0
+            non_zero_data = data[zero_mask]
+            spending_breaks['No spend'] = 0
+            spending_breaks['Low spend'] = np.percentile(non_zero_data['early_revenue'], 33.33).round(2)
+            spending_breaks['Medium spend'] = np.percentile(non_zero_data['early_revenue'], 66.67).round(2)
+            spending_breaks['High spend'] = np.ceil(data['early_revenue'].max())
+            print("Starting spending breaks:", spending_breaks)
+        
+        # Adding default end spending breaks if there was none.
+        if len(end_spending_breaks) == 0:
+            zero_mask = data['late_revenue'] != 0
+            non_zero_data = data[zero_mask]
+            end_spending_breaks['No spend'] = 0
+            end_spending_breaks['Low spend'] = np.percentile(non_zero_data['late_revenue'], 33.33).round(2)
+            end_spending_breaks['Medium spend'] = np.percentile(non_zero_data['late_revenue'], 66.67).round(2)
+            end_spending_breaks['High spend'] = np.ceil(data['late_revenue'].max())
+            print("Ending spending breaks:", end_spending_breaks)
+        
+
+        # Spending breaks needs to be sorted in ascending order
+        sorted_spending_breaks = dict(sorted(spending_breaks.items(), key=lambda x: x[1]))
+        sorted_end_spending_breaks = dict(sorted(end_spending_breaks.items(), key=lambda x: x[1]))
+
+        data['early_class'] = data['early_revenue'].apply(lambda x: self._classify_spend(x, sorted_spending_breaks))
+        data['late_class'] = data['late_revenue'].apply(lambda x: self._classify_spend(x, sorted_end_spending_breaks))
 
         def summary(data: pd.DataFrame):
             output  = {}
@@ -462,18 +488,20 @@ class LTVexploratory:
             .reset_index()
         )
     
-    def plot_paying_customers_flow(self, days_limit: int, early_limit: int, spending_breaks: Dict[str, float]):
+    def plot_paying_customers_flow(self, days_limit: int, early_limit: int, spending_breaks: Dict[str, float], end_spending_breaks: Dict[str, float]):
         """
         Plots the flow of customers from early spending class to late spending class
         Inputs:
             days_limit: number of days of the event since registration used to define the late spending class
             early_limit: number of days of the event since registration that is considered 'early'. Usually refers to optimization window of marketing platforms
             spending_breaks: dictionary, in which the keys defines the name of the class and the values the upper limit of the spending associated with the class. Lower limit is considered to be the lower limit of the previous class, else 0
+            end_spending_breaks: dictionary, in which the keys defines the name of the class and the values the upper limit of the spending associated with the class. Lower limit is considered to be the lower limit of the previous class, else 0
         """
 
-        data = self._group_users_by_spend(days_limit, early_limit, spending_breaks)
+        data = self._group_users_by_spend(days_limit, early_limit, spending_breaks, end_spending_breaks)
         data['customers'] = data['customers'] / data['customers'].sum()
 
+        self.interactive_chart.legend_out = True
         fig = self.interactive_chart.flow_chart(data, 'early_class', 'late_class', 'customers', title='User Flow Between Classes')
 
         return fig, data
@@ -514,7 +542,7 @@ class LTVexploratory:
             
         """
         # Get users grouped by their early and late revenue
-        data = self._group_users_by_spend(days_limit, 0, spending_breaks)
+        data = self._group_users_by_spend(days_limit, 0, spending_breaks, spending_breaks)
 
         # Apply the average LTV of the highest-spending class to all spending classes
         data['assumed_new_late_revenue'] = data['late_revenue'] * (data['late_class'].map(population_increase).fillna(0) + 1)
