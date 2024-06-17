@@ -450,7 +450,7 @@ class LTVexploratory:
             spending_breaks['No spend'] = 0
             spending_breaks['Low spend'] = np.percentile(non_zero_data['early_revenue'], 33.33).round(2)
             spending_breaks['Medium spend'] = np.percentile(non_zero_data['early_revenue'], 66.67).round(2)
-            spending_breaks['High spend'] = (data['early_revenue'].max() + 1).round(0)
+            spending_breaks['High spend'] = np.ceil(data['early_revenue'].max())
             print("Starting spending breaks:", spending_breaks)
         
         # Adding default end spending breaks if there was none.
@@ -460,7 +460,7 @@ class LTVexploratory:
             end_spending_breaks['No spend'] = 0
             end_spending_breaks['Low spend'] = np.percentile(non_zero_data['late_revenue'], 33.33).round(2)
             end_spending_breaks['Medium spend'] = np.percentile(non_zero_data['late_revenue'], 66.67).round(2)
-            end_spending_breaks['High spend'] = (data['late_revenue'].max() + 1).round(0)
+            end_spending_breaks['High spend'] = np.ceil(data['late_revenue'].max())
             print("Ending spending breaks:", end_spending_breaks)
         
 
