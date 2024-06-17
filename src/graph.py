@@ -11,6 +11,8 @@ import numpy as np
 import seaborn as sns
 import matplotlib.pyplot as plt
 from matplotlib.ticker import PercentFormatter, FuncFormatter
+import matplotlib
+import plotly
 import plotly.graph_objects as go
 import plotly.express as px
 from src.aux import lag, cumsum, drop_duplicates
@@ -399,7 +401,7 @@ class Graph:
         ylabel="",
         title: str = "",
         data_filter: str = None,
-    ) -> sns.axisgrid.FacetGrid:
+    ) -> matplotlib.figure.Figure:
         """
         This method is based on the sns.heatmap method, and is meant to plot the values of interest as a 2D matrix
 
@@ -450,7 +452,7 @@ class Graph:
 
             ax = self.set_ax_standard(ax, xlabel, ylabel, title)
 
-        return ax
+        return ax.get_figure()
     
 
     def heatmap_plot(
@@ -464,7 +466,7 @@ class Graph:
         xlabel="",
         ylabel="",
         title: str = "",
-    ) -> sns.axisgrid.FacetGrid:
+    ) -> matplotlib.figure.Figure:
         """
         This method is based on the sns.heatmap method, and is meant to plot the values of interest as a 2D matrix
 
@@ -516,7 +518,7 @@ class Graph:
 
             ax = self.set_ax_standard(ax, xlabel, ylabel, title)
 
-        return ax
+        return ax.get_figure()
 
 class InteractiveChart:
     """
@@ -529,12 +531,11 @@ class InteractiveChart:
             font:str='Avenir',
             txt_size:int=14,
             title_size:int=18,
-            img_shape=(1600, 800),
+            img_shape=(1200, 600),
             bargap: float=0.1,
             bar_opacity: float=0.8,
-            pad_percentage: float=0.01):
-            
-
+            pad_percentage: float=0.01
+            ):
         """
         - legend_out: whether the legend of the colors should be 'inside' or outside the plot
         - 
@@ -555,7 +556,8 @@ class InteractiveChart:
         """
         fig.update_layout(font=dict(family=self.font, size=self.txt_size))
         fig.update_layout(title_font=dict(family=self.font, size=self.title_size))
-        fig.update_layout( xaxis_title="", yaxis_title="")
+        fig.update_layout(xaxis_title="", yaxis_title="")
+        fig.update_layout(autosize=True)
 
     def _apply_figure_standards(self, fig):
         """
@@ -714,3 +716,25 @@ class InteractiveChart:
         self._apply_standards(fig)
         self._add_title(fig, "User Flow Between Classes")
         return fig
+    
+
+def save_plot(fig, file_path: str, dpi: int=200) -> None:
+    """
+    Save figure in the defined location
+    Inputs
+        fig: Either a [plotly.graph_objs._figure.Figure] or [seaborn.axisgrid.FacetGrid],
+        file_path: string containing path and name of the file it should be save as. Ex: images/my_image.png or /Users/Documents/my_image.jpeg
+        dpi: dots per inches. Only for static images
+    """
+    if isinstance(fig, sns.axisgrid.FacetGrid):
+        fig.savefig(file_path, dpi=dpi)
+    elif isinstance(fig, plotly.graph_objs._figure.Figure):
+        # assumes image display of 4k (3840 x 2160) pixels and (24.5 x 14.6) inches.
+        current_dpi = 2160 / 14.6
+        rescaled_height = fig.layout.height * dpi / current_dpi
+        rescaled_width = fig.layout.width * dpi / current_dpi
+        fig.write_image(file_path, height=rescaled_height, width=rescaled_width)
+    elif isinstance(fig, matplotlib.figure.Figure):
+        fig.savefig(file_path, bbox_inches="tight", dpi=dpi)
+    else:
+        raise TypeError(f"Input [fig] is of type {type(fig)} is not a valid type. It must be either seaborn.axisgrid.FacetGrid or plotly.graph_objs._figure.Figure")
