@@ -542,7 +542,7 @@ class LTVexploratory:
             
         """
         # Get users grouped by their early and late revenue
-        data = self._group_users_by_spend(days_limit, 0, spending_breaks, spending_breaks)
+        data = self._group_users_by_spend(days_limit, 0, spending_breaks.copy(), spending_breaks.copy())
 
         # Apply the average LTV of the highest-spending class to all spending classes
         data['assumed_new_late_revenue'] = data['late_revenue'] * (data['late_class'].map(population_increase).fillna(0) + 1)
