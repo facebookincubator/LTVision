@@ -497,19 +497,23 @@ class LTVexploratory:
             end_spending_breaks: dictionary, in which the keys defines the name of the class and the values the upper limit of the spending associated with the class. Lower limit is considered to be the lower limit of the previous class, else 0
         """
         data = self._group_users_by_spend(days_limit, early_limit, spending_breaks, end_spending_breaks)
-        self.interactive_chart.legend_out = True
-        fig = self.interactive_chart.flow_chart(data, 'early_class', 'late_class', 'customers', title='User Flow Between Classes')
 
         # add combination of early and late classes that have no customers
-        # unique_classes = data['early_class'].unique()
-        # skeleton_data = pd.DataFrame(data=list(product(unique_classes, unique_classes)), columns=['early_class', 'late_class'])
-        # visualization_data = pd.merge(skeleton_data, data, how='left', on=["early_class", "late_class"]).fillna(0.0)
-        # visualization_data['early_class'] = pd.Categorical(visualization_data['early_class'], ordered=True, categories=['No spend', 'Low spend', 'Medium spend', 'High spend'])
-        # visualization_data['late_class'] = pd.Categorical(visualization_data['late_class'], ordered=True, categories=['No spend', 'Low spend', 'Medium spend', 'High spend'])
-        # visualization_data['perc_total_customers'] = visualization_data['customers'] / visualization_data['customers'].sum()
-        # visualization_data.sort_values(['early_class', 'late_class'], inplace=True)
+        unique_classes = data['early_class'].unique()
+        skeleton_data = pd.DataFrame(data=list(product(unique_classes, unique_classes)), columns=['early_class', 'late_class'])
+        visualization_data = pd.merge(skeleton_data, data, how='left', on=["early_class", "late_class"]).fillna(0.0)
+        # Categorize classes, so that they are able to be ordered
+        visualization_data['early_class'] = pd.Categorical(visualization_data['early_class'], ordered=True, categories=['No spend', 'Low spend', 'Medium spend', 'High spend'])
+        visualization_data['late_class'] = pd.Categorical(visualization_data['late_class'], ordered=True, categories=['No spend', 'Low spend', 'Medium spend', 'High spend'])
+        visualization_data.sort_values(['early_class', 'late_class'], inplace=True)
+        # Add new columns
+        visualization_data['perc_total_customers'] = visualization_data['customers'] / visualization_data['customers'].sum()
 
-        return fig, data
+        data['customers'] = data['customers'] / data['customers'].sum()
+        self.interactive_chart.legend_out = True
+        fig = self.interactive_chart.flow_chart(data, 'early_class', 'late_class', 'customers', title='User Flow Between Classes')
+        
+        return fig, visualization_data
 
 
     def estimate_ltv_impact(
