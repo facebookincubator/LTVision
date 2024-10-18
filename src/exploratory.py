@@ -4,13 +4,14 @@
 # LICENSE file in the root directory of this source tree.
 
 """Module providing a class for initial analysis"""
-
+from itertools import product
 from typing import List, Dict
 import numpy as np
 import pandas as pd
 from pandas.api.types import is_datetime64_any_dtype , is_object_dtype, is_any_real_numeric_dtype, is_dtype_equal
 import seaborn as sns
 from src.graph import Graph, InteractiveChart
+
 
 sns.set_style("whitegrid")
 
@@ -471,12 +472,10 @@ class LTVexploratory:
         def summary(data: pd.DataFrame):
             output  = {}
             output['customers'] = len(data)
-            output['early_revenue'] = data['early_revenue'].sum()
-            output['early_ltv'] = data['early_revenue'].mean()
-            output['median_early_ltv'] = data['early_revenue'].median()
-            output['late_revenue'] = data['late_revenue'].sum()
-            output['late_ltv'] = data['late_revenue'].mean()
-            output['median_late_ltv'] = data['late_revenue'].median()
+            output['cumulative_early_revenue'] = data['early_revenue'].sum()
+            output['average_cumulative_early_revenue'] = data['early_revenue'].mean()
+            output['cumulative_late_revenue'] = data['late_revenue'].sum()
+            output['average_cumulative_late_revenue'] = data['late_revenue'].mean()
             return pd.Series(output)
                 
         return (
@@ -484,7 +483,7 @@ class LTVexploratory:
             .groupby(['early_class', 'late_class'])
             [[self.uuid_col, 'early_revenue', 'late_revenue']]
             .apply(summary)
-            .sort_values(['early_ltv', 'late_ltv'])
+            .sort_values(['average_cumulative_early_revenue', 'average_cumulative_late_revenue'])
             .reset_index()
         )
     
@@ -497,12 +496,17 @@ class LTVexploratory:
             spending_breaks: dictionary, in which the keys defines the name of the class and the values the upper limit of the spending associated with the class. Lower limit is considered to be the lower limit of the previous class, else 0
             end_spending_breaks: dictionary, in which the keys defines the name of the class and the values the upper limit of the spending associated with the class. Lower limit is considered to be the lower limit of the previous class, else 0
         """
-
         data = self._group_users_by_spend(days_limit, early_limit, spending_breaks, end_spending_breaks)
-        data['customers'] = data['customers'] / data['customers'].sum()
+        unique_classes = data['early_class'].unique()
+        skeleton_data = pd.DataFrame(data=list(product(unique_classes, unique_classes)), columns=['early_class', 'late_class'])
+        data = pd.merge(skeleton_data, data, how='left', on=["early_class", "late_class"]).fillna(0.0)
+        data['early_class'] = pd.Categorical(data['early_class'], ordered=True, categories=['No spend', 'Low spend', 'Medium spend', 'High spend'])
+        data['late_class'] = pd.Categorical(data['late_class'], ordered=True, categories=['No spend', 'Low spend', 'Medium spend', 'High spend'])
+        data['perc_total_customers'] = data['customers'] / data['customers'].sum()
+        data.sort_values(['early_class', 'late_class'], inplace=True)
 
         self.interactive_chart.legend_out = True
-        fig = self.interactive_chart.flow_chart(data, 'early_class', 'late_class', 'customers', title='User Flow Between Classes')
+        fig = self.interactive_chart.flow_chart(data[data['customers'] >= 1], 'early_class', 'late_class', 'customers', title='User Flow Between Classes')
 
         return fig, data
 
