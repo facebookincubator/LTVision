@@ -508,7 +508,11 @@ class LTVexploratory:
         visualization_data.sort_values(['early_class', 'late_class'], inplace=True)
         # Add new columns
         visualization_data['perc_total_customers'] = visualization_data['customers'] / visualization_data['customers'].sum()
-
+        visualization_data = visualization_data[[
+                'early_class', 'late_class', 'customers', 'perc_total_customers', 'average_cumulative_early_revenue', 
+                'cumulative_early_revenue', 'average_cumulative_late_revenue', 'cumulative_late_revenue'
+                ]]
+        
         data['customers'] = data['customers'] / data['customers'].sum()
         self.interactive_chart.legend_out = True
         fig = self.interactive_chart.flow_chart(data, 'early_class', 'late_class', 'customers', title='User Flow Between Classes')
@@ -554,13 +558,13 @@ class LTVexploratory:
         data = self._group_users_by_spend(days_limit, 0, spending_breaks.copy(), spending_breaks.copy())
 
         # Apply the average LTV of the highest-spending class to all spending classes
-        data['assumed_new_late_revenue'] = data['late_revenue'] * (data['late_class'].map(population_increase).fillna(0) + 1)
+        data['assumed_new_late_revenue'] = data['cumulative_late_revenue'] * (data['late_class'].map(population_increase).fillna(0) + 1)
         data['assumed_new_customers'] = data['customers'] * (data['late_class'].map(population_increase).fillna(0) + 1)
-        data = data[['early_class', 'late_class', 'customers', 'late_revenue', 'assumed_new_customers', 'assumed_new_late_revenue']]
-        data['abs_revenue_increase'] = data['assumed_new_late_revenue'] - data['late_revenue']
+        data = data[['early_class', 'late_class', 'customers', 'cumulative_late_revenue', 'assumed_new_customers', 'assumed_new_late_revenue']]
+        data['abs_revenue_increase'] = data['assumed_new_late_revenue'] - data['cumulative_late_revenue']
 
         abs_impact = np.sum(data['abs_revenue_increase'])
-        rel_impact = abs_impact / np.sum(data['late_revenue'])
+        rel_impact = abs_impact / np.sum(data['cumulative_late_revenue'])
 
         output_txt = f"""
         By adopting a predicted LTV (pLTV) based strategy for your marketing campaigns, we estimate up to {100*rel_impact:.1f}% increase in revenue.
