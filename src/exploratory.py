@@ -520,56 +520,77 @@ class LTVexploratory:
         return fig, visualization_data
 
 
+    def _get_upper_limit_ltv(self, users_flow_df: pd.DataFrame, is_mobile: bool) -> pd.Series:
+        """
+        This function estimates the new LTV that should be attributed to users as a result of using a LTV optimization
+        This method depends whether the business is from eCommerce or Gaming/Mobile Apps
+        Inputs
+            users_flow_df: the output dataframe from  plot_paying_customers_flow 
+            is_mobile: whether it relates to gaming/mobile app business. If not, assumes it is eCommerce
+        """
+        if is_mobile:
+            return self._get_mobile_ltv(users_flow_df)
+        else:
+           return self._get_ecomm_ltv(users_flow_df)
+
+    def _get_mobile_ltv(self, users_flow_df) -> pd.Series:
+        """
+        For each combination of (early class, late class), find the largest LTV in each (early_class). This is the best case scenario LTV
+        """
+        upper_ltv_df = (
+            users_flow_df
+            .groupby(["early_class"])['average_cumulative_late_revenue'].max()
+            .reset_index()
+            .rename(columns={'average_cumulative_late_revenue': 'best_case_average_late_revenue'})
+        )
+        return users_flow_df.merge(upper_ltv_df, how='inner', on=['early_class'])['best_case_average_late_revenue']
+
+    def _get_ecomm_ltv(self, users_flow_df) -> pd.Series:
+        """
+        Ignore users with no revenue at the beginning. Do nothing on them
+        For each (early class), change the values of the class 'Low Value' for the late_class to be the average of the LTV of the classes Medium and High (for late_class), weighted by the number of users
+        """
+        upper_ltv_df = (
+            users_flow_df
+            [(users_flow_df['early_class'] != 'No spend') & (users_flow_df['late_class'] != 'Low spend')]
+            .groupby(["early_class"])[['cumulative_late_revenue', 'customers']].sum()
+            .reset_index()
+        )
+        upper_ltv_df["best_case_average_late_revenue"] = upper_ltv_df["cumulative_late_revenue"] / upper_ltv_df["customers"] 
+        upper_ltv_df['late_class'] = 'Low spend'
+        upper_ltv_df = upper_ltv_df[["early_class", "late_class", "best_case_average_late_revenue"]]
+        upper_ltv_df = users_flow_df.merge(upper_ltv_df, how='left', on=['early_class', 'late_class'])
+        return upper_ltv_df.apply(
+            lambda x: x["best_case_average_late_revenue"] if ~np.isnan(x["best_case_average_late_revenue"]) else x['average_cumulative_late_revenue'], 
+            axis=1)
+    
     def estimate_ltv_impact(
             self,
             days_limit: int,
             spending_breaks: Dict[str, float],
-            population_increase: Dict[str, float]
+            is_mobile: bool
             ):
         """
         Estimate the impact of using a predicted LTV (pLTV) strategy for campaign optimization.
-        The estimate is calculated by increasing the number of customers according to [population_increase] and their
-        classification at a later moment [days_limit]. 
-        The impact is calculated by seeing the increase in revenue at a late date [days limit] caused by this increase
-        in the number of users.
-        The classification of users follow the same principle of the method [plot_paying_customers_flow()]
+        The estimation is an upper limit scenario to show the maximum impact one could ever foresee in just using LTV optimization.
+        As a consequence, it describes an unrealistic scenario and should be used only to draw the upper boundary
 
-        Inputs:
-            - days_limit: the number of days since registration to define as the 'late' revenue classification of a 
-                           customer. Usually this value is considered the effective number of days for the LTV
-            - spending_breaks: the classification of a user depending on its revenue
-            - population_increase: a dictionary of dictionaries. The initial keys refers the early revenue classification
-                                   and the values the relative increase for them
-
-        Example:
-            population_increase = {
-                'Low Spend': 0.1, 
-                'Medium Spend: 0.2,
-                'High Spend: 0.05
-                }
-            In this example, we assume that the LTV Optimization is going to:
-                - increase the number of users that generated low revenue by 10%
-                - increase the number of users that at the had medium revenue by 20%
-                - increase the number of users that already had high revenue by 5%
-                - all other classifications not specified remain unchaged
-            
+        The calculation depends on whether the data refers to an ecommerce or a mobile/gaming company.
         """
         # Get users grouped by their early and late revenue
         data = self._group_users_by_spend(days_limit, 0, spending_breaks.copy(), spending_breaks.copy())
 
         # Apply the average LTV of the highest-spending class to all spending classes
-        data['assumed_new_late_revenue'] = data['cumulative_late_revenue'] * (data['late_class'].map(population_increase).fillna(0) + 1)
-        data['assumed_new_customers'] = data['customers'] * (data['late_class'].map(population_increase).fillna(0) + 1)
-        data = data[['early_class', 'late_class', 'customers', 'cumulative_late_revenue', 'assumed_new_customers', 'assumed_new_late_revenue']]
+        data['assumed_average_new_late_revenue'] = self._get_upper_limit_ltv(data, is_mobile) 
+        data['assumed_new_late_revenue'] = data['assumed_average_new_late_revenue'] * data['customers'] 
         data['abs_revenue_increase'] = data['assumed_new_late_revenue'] - data['cumulative_late_revenue']
 
         abs_impact = np.sum(data['abs_revenue_increase'])
         rel_impact = abs_impact / np.sum(data['cumulative_late_revenue'])
 
         output_txt = f"""
-        By adopting a predicted LTV (pLTV) based strategy for your marketing campaigns, we estimate up to {100*rel_impact:.1f}% increase in revenue.
+        By adopting a predicted LTV (pLTV) based strategy for your marketing campaigns, we estimate a maximum increase of {100*rel_impact:.1f}% in revenue.
         This increase represents ${abs_impact:.0f} in revenue for the time period and scope used by the data provided.  
-        We find this  impact of the pLTV strategy by assuming an increase in the number of paying customers as passed down by argument [population_increase], and assuming that (1) the average LTVs don't change, and (2) the number of users in other classes don't change
         """
         print(output_txt)
         
