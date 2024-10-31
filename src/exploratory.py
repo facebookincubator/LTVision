@@ -567,6 +567,7 @@ class LTVexploratory:
     def estimate_ltv_impact(
             self,
             days_limit: int,
+            early_limit: int,
             spending_breaks: Dict[str, float],
             is_mobile: bool
             ):
@@ -578,7 +579,7 @@ class LTVexploratory:
         The calculation depends on whether the data refers to an ecommerce or a mobile/gaming company.
         """
         # Get users grouped by their early and late revenue
-        data = self._group_users_by_spend(days_limit, 0, spending_breaks.copy(), spending_breaks.copy())
+        data = self._group_users_by_spend(days_limit, early_limit, spending_breaks.copy(), spending_breaks.copy())
 
         # Apply the average LTV of the highest-spending class to all spending classes
         data['assumed_average_new_late_revenue'] = self._get_upper_limit_ltv(data, is_mobile) 
