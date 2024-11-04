@@ -273,7 +273,7 @@ class LTVexploratory:
             xlabel="Number of purchases",
             ylabel="Share of customers",
             y_format="%",
-            title=f"Distribution of paying customers (Y, %) by number of purchases of each customer until {days_limit} days after registration  (X)",
+            title=f"Customer Purchase Frequency (based on the first {days_limit} days after registration)",
         )
         ax = grid.ax
         # Add percentage labels on top of each bar
@@ -334,7 +334,24 @@ class LTVexploratory:
             .max()
             .reset_index()
         )
-
+        # Create the plot using the existing graphing method
+        fig = self.graph.line_plot(
+            data,
+            x_axis="cshare_customers",
+            y_axis="cshare_revenue",
+            xlabel="Share of paying customers",
+            ylabel="Share of revenue",
+            x_format="%",
+            y_format="%",
+            title=f"Top spenders' cumulative contribution to total revenue (based on the first {days_limit} days since registration)",
+        )
+        # Adjust the x-axis ticks to every 10%
+        for ax in fig.axes.flat:  # Iterate over all axes in the FacetGrid
+            ax.set_xticks(np.arange(0, 1.1, 0.1))
+            # Add a legend
+            ax.legend()
+        return fig, data
+        """
         fig = self.graph.line_plot(
             data,
             x_axis="cshare_customers",
@@ -346,6 +363,7 @@ class LTVexploratory:
             title=f"Share of all revenue of the first {days_limit} days after customer registration (Y) versus share of paying customers",
         )
         return fig, data
+        """
 
     def plot_customers_histogram_per_conversion_day(
         self, days_limit: int, optimization_window: int = 7, truncate_share=1.0
@@ -388,8 +406,29 @@ class LTVexploratory:
         share_customers_within_window = data[data["dsi"] <= optimization_window][
             self.uuid_col
         ].sum()
-        title = f"Initial Purchase Cycle\n{100*share_customers_within_window:.1f}% of first purchases happened within the first {optimization_window} days since registration\n\nShare of paying customers (Y) versus conversion days since registration (X)"
+        title = f"% of customers purchased on different days after registration\n{100*share_customers_within_window:.1f}% of first purchases happened within the first {optimization_window} days after registration\n"
 
+        # Create the bar plot using the existing graphing method
+        fig = self.graph.bar_plot(
+            data,
+            x_axis="dsi",
+            y_axis=self.uuid_col,
+            xlabel="",
+            ylabel="",
+            y_format="%",
+            title=title,
+        )
+        # Add percentage labels on top of each bar
+        for index, row in data.iterrows():
+            plt.text(
+                row["dsi"],
+                row[self.uuid_col],
+                f"{row[self.uuid_col]*100:.1f}%",
+                ha="center",
+                va="bottom",
+            )
+        return fig, data
+        """
         fig = self.graph.bar_plot(
             data,
             x_axis="dsi",
@@ -400,6 +439,7 @@ class LTVexploratory:
             title=title,
         )
         return fig, data
+        """
 
     def plot_early_late_revenue_correlation(
         self, days_limit: int, optimization_window: int = 7, interval_size: int = None
@@ -481,7 +521,7 @@ class LTVexploratory:
 
         fig = self.graph.heatmap_plot(
             customer_revenue_data,
-            title="Correlation matrix of revenue per user by days since registration\n",
+            title="Correlation matrix of revenue per user by different days since registration\n",
         )
         return fig, customer_revenue_data
 
@@ -663,7 +703,7 @@ class LTVexploratory:
             "early_class",
             "late_class",
             "customers",
-            title="User Flow Between Classes",
+            title=f"Purchaser Flow Between an early point in time - {early_limit} days and a future point in time - {days_limit} days",
         )
 
         return fig, visualization_data
