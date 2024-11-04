@@ -5,15 +5,24 @@
 
 """Module providing a class for initial analysis"""
 from itertools import product
-from typing import List, Dict
+from typing import Dict, List
+
+import matplotlib.pyplot as plt
+
 import numpy as np
 import pandas as pd
-from pandas.api.types import is_datetime64_any_dtype , is_object_dtype, is_any_real_numeric_dtype, is_dtype_equal
 import seaborn as sns
+from pandas.api.types import (
+    is_any_real_numeric_dtype,
+    is_datetime64_any_dtype,
+    is_dtype_equal,
+    is_object_dtype,
+)
 from src.graph import Graph, InteractiveChart
 
 
 sns.set_style("whitegrid")
+
 
 class LTVexploratory:
     """This class helps to perform som initial analysis"""
@@ -22,7 +31,7 @@ class LTVexploratory:
         self,
         data_customers: pd.DataFrame,
         data_events: pd.DataFrame,
-        uuid_col: str = 'UUID',
+        uuid_col: str = "UUID",
         registration_time_col: str = "timestamp_registration",
         event_time_col: str = "timestamp_event",
         event_name_col: str = "event_name",
@@ -42,7 +51,9 @@ class LTVexploratory:
         self.event_time_col = event_time_col
         self.event_name_col = event_name_col
         self.value_col = value_col
-        self.segment_feature_cols = [] if segment_feature_cols is None else segment_feature_cols
+        self.segment_feature_cols = (
+            [] if segment_feature_cols is None else segment_feature_cols
+        )
         # run auxiliar methods
         self._validate_datasets()
         self._prep_df()
@@ -51,11 +62,11 @@ class LTVexploratory:
         """
         This method perform the following checks for the input datasets:
         customers dataset:
-            - 
+            -
         customers dataset:
             - customer-id column is string or object type
             - time of event column is datetime
-        
+
         events dataset:
             - customer-id column is string or object type
             - event name column is string or object type
@@ -68,22 +79,36 @@ class LTVexploratory:
         """
 
         # customers dataset checks
-        assert((isinstance(
-            self.data_customers[self.uuid_col].dtype, pd.StringDtype) or 
-            is_object_dtype(self.data_customers[self.uuid_col]))) , f"The column [{self.uuid_col}] referencing to the customer-id in the customers dataset was expected to be of data pd.StringDtype or object. But it is of type {self.data_customers[self.uuid_col].dtype}"
-        assert(is_datetime64_any_dtype(self.data_customers[self.registration_time_col])), f"The column [{self.registration_time_col}] referencing to the registrationtime in the customers dataset was expected to be of type [datetime]. But it is of type {self.data_customers[self.registration_time_col].dtype}"
+        assert isinstance(
+            self.data_customers[self.uuid_col].dtype, pd.StringDtype
+        ) or is_object_dtype(
+            self.data_customers[self.uuid_col]
+        ), f"The column [{self.uuid_col}] referencing to the customer-id in the customers dataset was expected to be of data pd.StringDtype or object. But it is of type {self.data_customers[self.uuid_col].dtype}"
+        assert is_datetime64_any_dtype(
+            self.data_customers[self.registration_time_col]
+        ), f"The column [{self.registration_time_col}] referencing to the registrationtime in the customers dataset was expected to be of type [datetime]. But it is of type {self.data_customers[self.registration_time_col].dtype}"
 
         # events dataset checks
-        assert((isinstance(
-            self.data_events[self.uuid_col].dtype, pd.StringDtype) or 
-            is_object_dtype(self.data_events[self.uuid_col]))) , f"The column [{self.uuid_col}] referencing to the customer-id in the events dataset was expected to be of data pd.StringDtype or object. But it is of type {self.data_events[self.uuid_col].dtype}"
-        assert(is_datetime64_any_dtype(self.data_events[self.event_time_col])) , f"The column [{self.event_time_col}] referencing to the time in the events dataset was expected to be of type [datetime]. But it is of type {self.data_events[self.event_time_col].dtype}"
-        assert(is_any_real_numeric_dtype(self.data_events[self.value_col])) , f"The column [{self.value_col}] referencing value of a transaction in the events dataset was expected to be of numeric. But it is of type {self.data_events[self.value_col].dtype}"
+        assert isinstance(
+            self.data_events[self.uuid_col].dtype, pd.StringDtype
+        ) or is_object_dtype(
+            self.data_events[self.uuid_col]
+        ), f"The column [{self.uuid_col}] referencing to the customer-id in the events dataset was expected to be of data pd.StringDtype or object. But it is of type {self.data_events[self.uuid_col].dtype}"
+        assert is_datetime64_any_dtype(
+            self.data_events[self.event_time_col]
+        ), f"The column [{self.event_time_col}] referencing to the time in the events dataset was expected to be of type [datetime]. But it is of type {self.data_events[self.event_time_col].dtype}"
+        assert is_any_real_numeric_dtype(
+            self.data_events[self.value_col]
+        ), f"The column [{self.value_col}] referencing value of a transaction in the events dataset was expected to be of numeric. But it is of type {self.data_events[self.value_col].dtype}"
 
         # consistency checks
-        assert(is_dtype_equal(self.data_customers[self.uuid_col], self.data_events[self.uuid_col])), f"The customer-id columns of the two input datasets are not the same. In the customers dataset it is of type [{self.data_customers[self.uuid_col].dtype}], while in the events dataset it is of type [{self.data_customers[self.uuid_col].dtype}]"
-        assert(is_dtype_equal(self.data_customers[self.registration_time_col], self.data_events[self.event_time_col])), f"The timestamp columns of the two input datasets are not the same. In the customers dataset it is of type [{self.data_customers[self.registration_time_col].dtype}], while in the events dataset it is of type [{self.data_customers[self.event_time_col].dtype}]"
-
+        assert is_dtype_equal(
+            self.data_customers[self.uuid_col], self.data_events[self.uuid_col]
+        ), f"The customer-id columns of the two input datasets are not the same. In the customers dataset it is of type [{self.data_customers[self.uuid_col].dtype}], while in the events dataset it is of type [{self.data_customers[self.uuid_col].dtype}]"
+        assert is_dtype_equal(
+            self.data_customers[self.registration_time_col],
+            self.data_events[self.event_time_col],
+        ), f"The timestamp columns of the two input datasets are not the same. In the customers dataset it is of type [{self.data_customers[self.registration_time_col].dtype}], while in the events dataset it is of type [{self.data_customers[self.event_time_col].dtype}]"
 
     def _prep_df(self) -> None:
         # Left join customers and events data, so that you have a dataframe with all customers and their events (if no event, then timestamp is null)
@@ -152,17 +177,25 @@ class LTVexploratory:
         """
 
         # Get uuids from each input data
-        customers_uuids = pd.DataFrame({self.uuid_col: self.data_customers[self.uuid_col].unique()})
+        customers_uuids = pd.DataFrame(
+            {self.uuid_col: self.data_customers[self.uuid_col].unique()}
+        )
         customers_uuids["customers"] = "Present in Customers"
-        events_uuids = pd.DataFrame({self.uuid_col: self.data_events[self.uuid_col].unique()})
+        events_uuids = pd.DataFrame(
+            {self.uuid_col: self.data_events[self.uuid_col].unique()}
+        )
         events_uuids["events"] = "Present in Events"
 
         # Calculate how many customers are in each category
-        cross_uuid = pd.merge(customers_uuids, events_uuids, on=self.uuid_col, how="outer")
+        cross_uuid = pd.merge(
+            customers_uuids, events_uuids, on=self.uuid_col, how="outer"
+        )
         cross_uuid["customers"] = cross_uuid["customers"].fillna("Not in customers")
         cross_uuid["events"] = cross_uuid["events"].fillna("Not in Events")
         cross_uuid = (
-            cross_uuid.groupby(["customers", "events"])[self.uuid_col].count().reset_index()
+            cross_uuid.groupby(["customers", "events"])[self.uuid_col]
+            .count()
+            .reset_index()
         )
 
         # Create a dataframe containing all combinations for the visualization
@@ -186,7 +219,9 @@ class LTVexploratory:
             complete_data, cross_uuid, on=["customers", "events"], how="left"
         )
         complete_data = complete_data.fillna(0)
-        complete_data[self.uuid_col] = complete_data[self.uuid_col]/np.sum(complete_data[self.uuid_col])
+        complete_data[self.uuid_col] = complete_data[self.uuid_col] / np.sum(
+            complete_data[self.uuid_col]
+        )
         fig = self.graph.grid_plot(complete_data, "customers", "events", self.uuid_col)
         return fig, complete_data
 
@@ -231,7 +266,7 @@ class LTVexploratory:
         # Find treshold truncation
         customers_truncation = data["count"].cumsum() <= truncate_share
         # plot distribution by customers
-        fig = self.graph.bar_plot(
+        grid = self.graph.bar_plot(
             data[customers_truncation],
             x_axis="purchases",
             y_axis="count",
@@ -240,12 +275,20 @@ class LTVexploratory:
             y_format="%",
             title=f"Distribution of paying customers (Y, %) by number of purchases of each customer until {days_limit} days after registration  (X)",
         )
-        return fig, data
+        ax = grid.ax
+        # Add percentage labels on top of each bar
+        for bar in ax.patches:
+            height = bar.get_height()
+            ax.text(
+                bar.get_x() + bar.get_width() / 2,
+                height,
+                f"{height * 100:.1f}%",  # Convert to percentage
+                ha="center",
+                va="bottom",
+            )
+        return grid, data
 
-
-    def plot_revenue_pareto(
-        self, days_limit: int, granularity: int=1000
-    ):
+    def plot_revenue_pareto(self, days_limit: int, granularity: int = 1000):
         """
         Plots the - cumulative - share of revenue (Y) versus the share of customers (X), with customers ordered by revenue in descending order
         This plots how concentrated the revenue is. Base of customers is only of spending customers (so customers who never spent anything are ignored)
@@ -270,7 +313,8 @@ class LTVexploratory:
         # Count how many purchase customers had (defined by value > 0) and then how many customers are in each place
         data = data[data[self.value_col] > 0]
         data = (
-            data.groupby(self.uuid_col)[self.value_col].sum()
+            data.groupby(self.uuid_col)[self.value_col]
+            .sum()
             .reset_index()
             .sort_values(self.value_col, ascending=False)
         )
@@ -278,12 +322,15 @@ class LTVexploratory:
         # Calculate total revenue and group customers together based on the granilarity
         total_revenue = data[self.value_col].sum()
         total_customers = data.shape[0]
-        data['cshare_customers'] = [(i+1)/total_customers for i in range(total_customers)]
-        data['cshare_revenue'] = data[self.value_col].cumsum() / total_revenue
-        data['group'] = data['cshare_customers'].apply(lambda x: np.ceil(x*granularity))
+        data["cshare_customers"] = [
+            (i + 1) / total_customers for i in range(total_customers)
+        ]
+        data["cshare_revenue"] = data[self.value_col].cumsum() / total_revenue
+        data["group"] = data["cshare_customers"].apply(
+            lambda x: np.ceil(x * granularity)
+        )
         data = (
-            data
-            .groupby("group")[["cshare_customers", "cshare_revenue"]]
+            data.groupby("group")[["cshare_customers", "cshare_revenue"]]
             .max()
             .reset_index()
         )
@@ -301,10 +348,8 @@ class LTVexploratory:
         return fig, data
 
     def plot_customers_histogram_per_conversion_day(
-            self,
-            days_limit: int,
-            optimization_window: int=7,
-            truncate_share = 1.0) -> None:
+        self, days_limit: int, optimization_window: int = 7, truncate_share=1.0
+    ) -> None:
         """
         Plots the distribution of all customers that converted until (days_limit) days after registration per conversion day
         Inputs:
@@ -321,48 +366,49 @@ class LTVexploratory:
 
         # Remove customers who never had a purchase and ensure all customers have the same opportunity window
         data = data[data[self.value_col] > 0]
-        data['dsi'] = ((data[self.event_time_col] - data[self.registration_time_col]).dt.days).fillna(0)
-        data = data[data['dsi'] <= days_limit]
+        data["dsi"] = (
+            (data[self.event_time_col] - data[self.registration_time_col]).dt.days
+        ).fillna(0)
+        data = data[data["dsi"] <= days_limit]
 
         # calculate data for the histogram
         data = (
-            data
-            .groupby(self.uuid_col)['dsi']
+            data.groupby(self.uuid_col)["dsi"]
             .min()
             .reset_index()
-            .groupby('dsi')[self.uuid_col]
+            .groupby("dsi")[self.uuid_col]
             .count()
             .reset_index()
         )
 
         # calculate the share of customers instead of absolute numbers and numbers for the title
-        data[self.uuid_col]  = data[self.uuid_col] / data[self.uuid_col].sum()
+        data[self.uuid_col] = data[self.uuid_col] / data[self.uuid_col].sum()
         data = data[data[self.uuid_col].cumsum() < truncate_share]
 
-        share_customers_within_window = data[data['dsi'] <= optimization_window][self.uuid_col].sum()
+        share_customers_within_window = data[data["dsi"] <= optimization_window][
+            self.uuid_col
+        ].sum()
         title = f"Initial Purchase Cycle\n{100*share_customers_within_window:.1f}% of first purchases happened within the first {optimization_window} days since registration\n\nShare of paying customers (Y) versus conversion days since registration (X)"
 
         fig = self.graph.bar_plot(
-                    data,
-                    x_axis="dsi",
-                    y_axis=self.uuid_col,
-                    xlabel="",
-                    ylabel="",
-                    y_format="%",
-                    title=title
-                )
+            data,
+            x_axis="dsi",
+            y_axis=self.uuid_col,
+            xlabel="",
+            ylabel="",
+            y_format="%",
+            title=title,
+        )
         return fig, data
-    
+
     def plot_early_late_revenue_correlation(
-        self,
-        days_limit: int,
-        optimization_window: int=7,
-        interval_size: int=None) -> None:
+        self, days_limit: int, optimization_window: int = 7, interval_size: int = None
+    ) -> None:
         """
         Calculates and plots correlation between customer-level revenue
         The correlation is between the revenue in the first [optimization_window] days after registration and the following [days_limit - optimization_window] days
         This can be useful to decide what number of days should define the 'Lifetime Value Window' of a customer
-        
+
         Inputs
              - days_limit: max number of days after registration to be considered in the analysis
              - optimization_window: number of days from registration that the optimization of the marketing campaigns are operated
@@ -370,44 +416,87 @@ class LTVexploratory:
         """
         # Filters customers to ensure that all have the same opportunity to generate revenue until [days_limits] after registration
         end_events_date = self.joined_df[self.event_time_col].max()
-        cohort_filter = (end_events_date - self.joined_df[self.registration_time_col]).dt.days >= days_limit # ensure to only gets cohorts that are 'days_limit' old
-        opportunity_filter = (self.joined_df[self.event_time_col] - self.joined_df[self.registration_time_col]).dt.days <= days_limit # only consider the first 'days_limit' days of a customer
-        customer_revenue_data = self.joined_df[cohort_filter & opportunity_filter].copy()
+        cohort_filter = (
+            end_events_date - self.joined_df[self.registration_time_col]
+        ).dt.days >= days_limit  # ensure to only gets cohorts that are 'days_limit' old
+        opportunity_filter = (
+            self.joined_df[self.event_time_col]
+            - self.joined_df[self.registration_time_col]
+        ).dt.days <= days_limit  # only consider the first 'days_limit' days of a customer
+        customer_revenue_data = self.joined_df[
+            cohort_filter & opportunity_filter
+        ].copy()
 
         # Create a new dataframe for cross join, so we can ensure that all customers have (days_limit + 1) days to calculate correlation
-        days_data = pd.DataFrame({'days_since_install': np.linspace(optimization_window, days_limit, days_limit - optimization_window + 1).astype(np.int32)})
-        days_data['key'] = 1
-        customer_revenue_data['key'] = 1
-        customer_revenue_data = pd.merge(customer_revenue_data, days_data, on='key').drop('key', axis=1)
+        days_data = pd.DataFrame(
+            {
+                "days_since_install": np.linspace(
+                    optimization_window,
+                    days_limit,
+                    days_limit - optimization_window + 1,
+                ).astype(np.int32)
+            }
+        )
+        days_data["key"] = 1
+        customer_revenue_data["key"] = 1
+        customer_revenue_data = pd.merge(
+            customer_revenue_data, days_data, on="key"
+        ).drop("key", axis=1)
 
         # Calculates the revenue of each customer until N days after registration (as the customer doesn't necessarily spend on all days)
-        customer_revenue_data[self.value_col] = (customer_revenue_data['days_since_registration'] <= customer_revenue_data['days_since_install']) * customer_revenue_data[self.value_col]
+        customer_revenue_data[self.value_col] = (
+            customer_revenue_data["days_since_registration"]
+            <= customer_revenue_data["days_since_install"]
+        ) * customer_revenue_data[self.value_col]
         customer_revenue_data = (
-            customer_revenue_data
-            .groupby([self.uuid_col, 'days_since_install'])
-            [self.value_col].sum().reset_index()
+            customer_revenue_data.groupby([self.uuid_col, "days_since_install"])[
+                self.value_col
+            ]
+            .sum()
+            .reset_index()
         )
         # Calculate correlation, extract the correlation only for the 'early revenue' and plot it
-        customer_revenue_data = customer_revenue_data.pivot(index=self.uuid_col, columns='days_since_install', values=self.value_col).reset_index()
+        customer_revenue_data = customer_revenue_data.pivot(
+            index=self.uuid_col, columns="days_since_install", values=self.value_col
+        ).reset_index()
         customer_revenue_data = customer_revenue_data.drop(self.uuid_col, axis=1).corr()
 
         # Filter out only some of the days, otherwise there will have too much granularity for visualization
-        interval_size = interval_size if interval_size is not None else np.round((days_limit - optimization_window) / 20)
-        interval_size = interval_size.astype(int) # doesn't work if applied directly on the output of np.round for some reason
-        days_of_interest = [i for i in range(optimization_window, days_limit, interval_size)]
-        customer_revenue_data = customer_revenue_data[days_of_interest][customer_revenue_data.index.isin(days_of_interest)]
+        interval_size = (
+            interval_size
+            if interval_size is not None
+            else np.round((days_limit - optimization_window) / 20)
+        )
+        interval_size = interval_size.astype(
+            int
+        )  # doesn't work if applied directly on the output of np.round for some reason
+        days_of_interest = [
+            i for i in range(optimization_window, days_limit, interval_size)
+        ]
+        customer_revenue_data = customer_revenue_data[days_of_interest][
+            customer_revenue_data.index.isin(days_of_interest)
+        ]
         mask = np.zeros_like(customer_revenue_data, dtype=bool)
         mask[np.tril_indices_from(mask)] = True
 
-        fig = self.graph.heatmap_plot(customer_revenue_data, title="Correlation matrix of revenue per user by days since registration\n")
+        fig = self.graph.heatmap_plot(
+            customer_revenue_data,
+            title="Correlation matrix of revenue per user by days since registration\n",
+        )
         return fig, customer_revenue_data
 
     @staticmethod
     def _classify_spend(x: float, spending_breaks: Dict[str, float]):
-            key = np.argmax(x <= np.array(list(spending_breaks.values())))
-            return list(spending_breaks.keys())[key]
-    
-    def _group_users_by_spend(self, days_limit: int, early_limit: int, spending_breaks: Dict[str, float], end_spending_breaks: Dict[str, float]) -> pd.DataFrame:
+        key = np.argmax(x <= np.array(list(spending_breaks.values())))
+        return list(spending_breaks.keys())[key]
+
+    def _group_users_by_spend(
+        self,
+        days_limit: int,
+        early_limit: int,
+        spending_breaks: Dict[str, float],
+        end_spending_breaks: Dict[str, float],
+    ) -> pd.DataFrame:
         """
         Group users based  on their early (early_limit) and late (days_limit) revenue
         Inputs:
@@ -431,63 +520,92 @@ class LTVexploratory:
 
         # Count how many purchase customers had (defined by value > 0) and then how many customers are in each place
         data = data[data[self.value_col] > 0]
-        data['dsi'] = ((data[self.event_time_col] - data[self.registration_time_col]).dt.days).fillna(0)
-        data['early_revenue'] = data.apply(lambda x: (x['dsi'] <= early_limit) * x[self.value_col], axis=1)
-        data['late_revenue'] = data.apply(lambda x: (x['dsi'] <= days_limit) * x[self.value_col], axis=1)
+        data["dsi"] = (
+            (data[self.event_time_col] - data[self.registration_time_col]).dt.days
+        ).fillna(0)
+        data["early_revenue"] = data.apply(
+            lambda x: (x["dsi"] <= early_limit) * x[self.value_col], axis=1
+        )
+        data["late_revenue"] = data.apply(
+            lambda x: (x["dsi"] <= days_limit) * x[self.value_col], axis=1
+        )
 
         data = (
-            data
-            .groupby(self.uuid_col)[['early_revenue', 'late_revenue']].sum()
+            data.groupby(self.uuid_col)[["early_revenue", "late_revenue"]]
+            .sum()
             .reset_index()
         )
 
         # Adding default spending breaks if there was none.
         if len(spending_breaks) == 0:
-            zero_mask = data['early_revenue'] != 0
+            zero_mask = data["early_revenue"] != 0
             non_zero_data = data[zero_mask]
-            spending_breaks['No spend'] = 0
-            spending_breaks['Low spend'] = np.percentile(non_zero_data['early_revenue'], 33.33).round(2)
-            spending_breaks['Medium spend'] = np.percentile(non_zero_data['early_revenue'], 66.67).round(2)
-            spending_breaks['High spend'] = np.ceil(data['early_revenue'].max())
+            spending_breaks["No spend"] = 0
+            spending_breaks["Low spend"] = np.percentile(
+                non_zero_data["early_revenue"], 33.33
+            ).round(2)
+            spending_breaks["Medium spend"] = np.percentile(
+                non_zero_data["early_revenue"], 66.67
+            ).round(2)
+            spending_breaks["High spend"] = np.ceil(data["early_revenue"].max())
             print("Starting spending breaks:", spending_breaks)
-        
+
         # Adding default end spending breaks if there was none.
         if len(end_spending_breaks) == 0:
-            zero_mask = data['late_revenue'] != 0
+            zero_mask = data["late_revenue"] != 0
             non_zero_data = data[zero_mask]
-            end_spending_breaks['No spend'] = 0
-            end_spending_breaks['Low spend'] = np.percentile(non_zero_data['late_revenue'], 33.33).round(2)
-            end_spending_breaks['Medium spend'] = np.percentile(non_zero_data['late_revenue'], 66.67).round(2)
-            end_spending_breaks['High spend'] = np.ceil(data['late_revenue'].max())
+            end_spending_breaks["No spend"] = 0
+            end_spending_breaks["Low spend"] = np.percentile(
+                non_zero_data["late_revenue"], 33.33
+            ).round(2)
+            end_spending_breaks["Medium spend"] = np.percentile(
+                non_zero_data["late_revenue"], 66.67
+            ).round(2)
+            end_spending_breaks["High spend"] = np.ceil(data["late_revenue"].max())
             print("Ending spending breaks:", end_spending_breaks)
-        
 
         # Spending breaks needs to be sorted in ascending order
-        sorted_spending_breaks = dict(sorted(spending_breaks.items(), key=lambda x: x[1]))
-        sorted_end_spending_breaks = dict(sorted(end_spending_breaks.items(), key=lambda x: x[1]))
+        sorted_spending_breaks = dict(
+            sorted(spending_breaks.items(), key=lambda x: x[1])
+        )
+        sorted_end_spending_breaks = dict(
+            sorted(end_spending_breaks.items(), key=lambda x: x[1])
+        )
 
-        data['early_class'] = data['early_revenue'].apply(lambda x: self._classify_spend(x, sorted_spending_breaks))
-        data['late_class'] = data['late_revenue'].apply(lambda x: self._classify_spend(x, sorted_end_spending_breaks))
+        data["early_class"] = data["early_revenue"].apply(
+            lambda x: self._classify_spend(x, sorted_spending_breaks)
+        )
+        data["late_class"] = data["late_revenue"].apply(
+            lambda x: self._classify_spend(x, sorted_end_spending_breaks)
+        )
 
         def summary(data: pd.DataFrame):
-            output  = {}
-            output['customers'] = len(data)
-            output['cumulative_early_revenue'] = data['early_revenue'].sum()
-            output['average_cumulative_early_revenue'] = data['early_revenue'].mean()
-            output['cumulative_late_revenue'] = data['late_revenue'].sum()
-            output['average_cumulative_late_revenue'] = data['late_revenue'].mean()
+            output = {}
+            output["customers"] = len(data)
+            output["cumulative_early_revenue"] = data["early_revenue"].sum()
+            output["average_cumulative_early_revenue"] = data["early_revenue"].mean()
+            output["cumulative_late_revenue"] = data["late_revenue"].sum()
+            output["average_cumulative_late_revenue"] = data["late_revenue"].mean()
             return pd.Series(output)
-                
+
         return (
-            data
-            .groupby(['early_class', 'late_class'])
-            [[self.uuid_col, 'early_revenue', 'late_revenue']]
+            data.groupby(["early_class", "late_class"])[
+                [self.uuid_col, "early_revenue", "late_revenue"]
+            ]
             .apply(summary)
-            .sort_values(['average_cumulative_early_revenue', 'average_cumulative_late_revenue'])
+            .sort_values(
+                ["average_cumulative_early_revenue", "average_cumulative_late_revenue"]
+            )
             .reset_index()
         )
-    
-    def plot_paying_customers_flow(self, days_limit: int, early_limit: int, spending_breaks: Dict[str, float], end_spending_breaks: Dict[str, float]):
+
+    def plot_paying_customers_flow(
+        self,
+        days_limit: int,
+        early_limit: int,
+        spending_breaks: Dict[str, float],
+        end_spending_breaks: Dict[str, float],
+    ):
         """
         Plots the flow of customers from early spending class to late spending class
         Inputs:
@@ -496,54 +614,92 @@ class LTVexploratory:
             spending_breaks: dictionary, in which the keys defines the name of the class and the values the upper limit of the spending associated with the class. Lower limit is considered to be the lower limit of the previous class, else 0
             end_spending_breaks: dictionary, in which the keys defines the name of the class and the values the upper limit of the spending associated with the class. Lower limit is considered to be the lower limit of the previous class, else 0
         """
-        data = self._group_users_by_spend(days_limit, early_limit, spending_breaks, end_spending_breaks)
+        data = self._group_users_by_spend(
+            days_limit, early_limit, spending_breaks, end_spending_breaks
+        )
 
         # add combination of early and late classes that have no customers
-        unique_classes = data['early_class'].unique()
-        skeleton_data = pd.DataFrame(data=list(product(unique_classes, unique_classes)), columns=['early_class', 'late_class'])
-        visualization_data = pd.merge(skeleton_data, data, how='left', on=["early_class", "late_class"]).fillna(0.0)
+        unique_classes = data["early_class"].unique()
+        skeleton_data = pd.DataFrame(
+            data=list(product(unique_classes, unique_classes)),
+            columns=["early_class", "late_class"],
+        )
+        visualization_data = pd.merge(
+            skeleton_data, data, how="left", on=["early_class", "late_class"]
+        ).fillna(0.0)
         # Categorize classes, so that they are able to be ordered
-        visualization_data['early_class'] = pd.Categorical(visualization_data['early_class'], ordered=True, categories=['No spend', 'Low spend', 'Medium spend', 'High spend'])
-        visualization_data['late_class'] = pd.Categorical(visualization_data['late_class'], ordered=True, categories=['No spend', 'Low spend', 'Medium spend', 'High spend'])
-        visualization_data.sort_values(['early_class', 'late_class'], inplace=True)
+        visualization_data["early_class"] = pd.Categorical(
+            visualization_data["early_class"],
+            ordered=True,
+            categories=["No spend", "Low spend", "Medium spend", "High spend"],
+        )
+        visualization_data["late_class"] = pd.Categorical(
+            visualization_data["late_class"],
+            ordered=True,
+            categories=["No spend", "Low spend", "Medium spend", "High spend"],
+        )
+        visualization_data.sort_values(["early_class", "late_class"], inplace=True)
         # Add new columns
-        visualization_data['perc_total_customers'] = visualization_data['customers'] / visualization_data['customers'].sum()
-        visualization_data = visualization_data[[
-                'early_class', 'late_class', 'customers', 'perc_total_customers', 'average_cumulative_early_revenue', 
-                'cumulative_early_revenue', 'average_cumulative_late_revenue', 'cumulative_late_revenue'
-                ]]
-        
-        data['customers'] = data['customers'] / data['customers'].sum()
+        visualization_data["perc_total_customers"] = (
+            visualization_data["customers"] / visualization_data["customers"].sum()
+        )
+        visualization_data = visualization_data[
+            [
+                "early_class",
+                "late_class",
+                "customers",
+                "perc_total_customers",
+                "average_cumulative_early_revenue",
+                "cumulative_early_revenue",
+                "average_cumulative_late_revenue",
+                "cumulative_late_revenue",
+            ]
+        ]
+
+        data["customers"] = data["customers"] / data["customers"].sum()
         self.interactive_chart.legend_out = True
-        fig = self.interactive_chart.flow_chart(data, 'early_class', 'late_class', 'customers', title='User Flow Between Classes')
-        
+        fig = self.interactive_chart.flow_chart(
+            data,
+            "early_class",
+            "late_class",
+            "customers",
+            title="User Flow Between Classes",
+        )
+
         return fig, visualization_data
 
-
-    def _get_upper_limit_ltv(self, users_flow_df: pd.DataFrame, is_mobile: bool) -> pd.Series:
+    def _get_upper_limit_ltv(
+        self, users_flow_df: pd.DataFrame, is_mobile: bool
+    ) -> pd.Series:
         """
         This function estimates the new LTV that should be attributed to users as a result of using a LTV optimization
         This method depends whether the business is from eCommerce or Gaming/Mobile Apps
         Inputs
-            users_flow_df: the output dataframe from  plot_paying_customers_flow 
+            users_flow_df: the output dataframe from  plot_paying_customers_flow
             is_mobile: whether it relates to gaming/mobile app business. If not, assumes it is eCommerce
         """
         if is_mobile:
             return self._get_mobile_ltv(users_flow_df)
         else:
-           return self._get_ecomm_ltv(users_flow_df)
+            return self._get_ecomm_ltv(users_flow_df)
 
     def _get_mobile_ltv(self, users_flow_df) -> pd.Series:
         """
         For each combination of (early class, late class), find the largest LTV in each (early_class). This is the best case scenario LTV
         """
         upper_ltv_df = (
-            users_flow_df
-            .groupby(["early_class"])['average_cumulative_late_revenue'].max()
+            users_flow_df.groupby(["early_class"])["average_cumulative_late_revenue"]
+            .max()
             .reset_index()
-            .rename(columns={'average_cumulative_late_revenue': 'best_case_average_late_revenue'})
+            .rename(
+                columns={
+                    "average_cumulative_late_revenue": "best_case_average_late_revenue"
+                }
+            )
         )
-        return users_flow_df.merge(upper_ltv_df, how='inner', on=['early_class'])['best_case_average_late_revenue']
+        return users_flow_df.merge(upper_ltv_df, how="inner", on=["early_class"])[
+            "best_case_average_late_revenue"
+        ]
 
     def _get_ecomm_ltv(self, users_flow_df) -> pd.Series:
         """
@@ -551,26 +707,40 @@ class LTVexploratory:
         For each (early class), change the values of the class 'Low Value' for the late_class to be the average of the LTV of the classes Medium and High (for late_class), weighted by the number of users
         """
         upper_ltv_df = (
-            users_flow_df
-            [(users_flow_df['early_class'] != 'No spend') & (users_flow_df['late_class'] != 'Low spend')]
-            .groupby(["early_class"])[['cumulative_late_revenue', 'customers']].sum()
+            users_flow_df[
+                (users_flow_df["early_class"] != "No spend")
+                & (users_flow_df["late_class"] != "Low spend")
+            ]
+            .groupby(["early_class"])[["cumulative_late_revenue", "customers"]]
+            .sum()
             .reset_index()
         )
-        upper_ltv_df["best_case_average_late_revenue"] = upper_ltv_df["cumulative_late_revenue"] / upper_ltv_df["customers"] 
-        upper_ltv_df['late_class'] = 'Low spend'
-        upper_ltv_df = upper_ltv_df[["early_class", "late_class", "best_case_average_late_revenue"]]
-        upper_ltv_df = users_flow_df.merge(upper_ltv_df, how='left', on=['early_class', 'late_class'])
+        upper_ltv_df["best_case_average_late_revenue"] = (
+            upper_ltv_df["cumulative_late_revenue"] / upper_ltv_df["customers"]
+        )
+        upper_ltv_df["late_class"] = "Low spend"
+        upper_ltv_df = upper_ltv_df[
+            ["early_class", "late_class", "best_case_average_late_revenue"]
+        ]
+        upper_ltv_df = users_flow_df.merge(
+            upper_ltv_df, how="left", on=["early_class", "late_class"]
+        )
         return upper_ltv_df.apply(
-            lambda x: x["best_case_average_late_revenue"] if ~np.isnan(x["best_case_average_late_revenue"]) else x['average_cumulative_late_revenue'], 
-            axis=1)
-    
+            lambda x: (
+                x["best_case_average_late_revenue"]
+                if ~np.isnan(x["best_case_average_late_revenue"])
+                else x["average_cumulative_late_revenue"]
+            ),
+            axis=1,
+        )
+
     def estimate_ltv_impact(
-            self,
-            days_limit: int,
-            early_limit: int,
-            spending_breaks: Dict[str, float],
-            is_mobile: bool
-            ):
+        self,
+        days_limit: int,
+        early_limit: int,
+        spending_breaks: Dict[str, float],
+        is_mobile: bool,
+    ):
         """
         Estimate the impact of using a predicted LTV (pLTV) strategy for campaign optimization.
         The estimation is an upper limit scenario to show the maximum impact one could ever foresee in just using LTV optimization.
@@ -579,20 +749,28 @@ class LTVexploratory:
         The calculation depends on whether the data refers to an ecommerce or a mobile/gaming company.
         """
         # Get users grouped by their early and late revenue
-        data = self._group_users_by_spend(days_limit, early_limit, spending_breaks.copy(), spending_breaks.copy())
+        data = self._group_users_by_spend(
+            days_limit, early_limit, spending_breaks.copy(), spending_breaks.copy()
+        )
 
         # Apply the average LTV of the highest-spending class to all spending classes
-        data['assumed_average_new_late_revenue'] = self._get_upper_limit_ltv(data, is_mobile) 
-        data['assumed_new_late_revenue'] = data['assumed_average_new_late_revenue'] * data['customers'] 
-        data['abs_revenue_increase'] = data['assumed_new_late_revenue'] - data['cumulative_late_revenue']
+        data["assumed_average_new_late_revenue"] = self._get_upper_limit_ltv(
+            data, is_mobile
+        )
+        data["assumed_new_late_revenue"] = (
+            data["assumed_average_new_late_revenue"] * data["customers"]
+        )
+        data["abs_revenue_increase"] = (
+            data["assumed_new_late_revenue"] - data["cumulative_late_revenue"]
+        )
 
-        abs_impact = np.sum(data['abs_revenue_increase'])
-        rel_impact = abs_impact / np.sum(data['cumulative_late_revenue'])
+        abs_impact = np.sum(data["abs_revenue_increase"])
+        rel_impact = abs_impact / np.sum(data["cumulative_late_revenue"])
 
         output_txt = f"""
         By adopting a predicted LTV (pLTV) based strategy for your marketing campaigns, we estimate a maximum increase of {100*rel_impact:.1f}% in revenue.
         This increase represents ${abs_impact:.0f} in revenue for the time period and scope used by the data provided.  
         """
         print(output_txt)
-        
+
         return data
