@@ -1,16 +1,44 @@
+<p align="center">
+  <img src="./website/static/img/LTVision-logo.png" alt="logo" width="50%"/>
+</p>
 
 # LTVision
-LTVision is a package for predicting LTV. It contains two modules
-* Module 1 helps answer the question do I need a pLTV model for my data?
-* Module 2 helps create the pLTV model (developing in the process)
 
+LTVision is an open-source library designed to empower businesses to unlock the full potential of predictive Lifetime Value (pLTV) modeling. Our mission is to grow the pie for everyone in the pLTV ecosystem and lead the industry in thought leadership, expertise, and best practices.
 
-## Requirements
+**What is LTVision?**
+--------------------
+
+LTVision is a package containing two modules that help businesses evaluate and implement pLTV models tailored to their diverse needs.
+
+### Module 1: Customer Insights and pLTV Opportunity Size Estimation
+
+This module is now available and provides the following features:
+
+* Generate customer behavioral insights to inform business decisions
+* Estimate pLTV opportunity size to evaluate the potential ROI of implementing a pLTV model and strategy
+
+With Module 1, business decision-makers can assess the value of investing in pLTV modeling before committing resources.
+
+### Module 2: User-Level pLTV Model Development
+
+Currently in development, this module will provide a code base for building user-level pLTV models. This will enable businesses to create customized models that drive long-term revenue growth and sustainable business success.
+
+**Getting Started**
+-------------------
+
+To get started with LTVision, explore our repository and discover how our library can help you unlock the full potential of pLTV modeling.
+
+* Read our documentation to learn more about LTVision's features and capabilities.
+* Explore our code base to understand how to integrate LTVision into your projects.
+* Join our community to contribute to the development of LTVision and stay up-to-date with the latest updates.
+
+### Requirements
 LTVision requires or works with
 * python 3.8.5 or newer.
 
 
-## Quick start
+### Quick start
 
 **1. Installing the package**
 
@@ -56,6 +84,14 @@ Use `example.ipynb` for getting started.
 
 To run this notebook with new environment, go to Kernel -> Change kernel -> venv .
 
+**Contribute to LTVision**
+-------------------------
+
+We welcome contributions from developers, data scientists, and industry experts. Your input will help shape the future of LTVision and drive innovation in the pLTV ecosystem.
+
+* Report issues or bugs to help us improve LTVision.
+* Share your ideas and suggestions for new features or improvements.
+* Collaborate with our community to develop new modules and capabilities.
 
 ## Join the LTVision community
 * Website:
@@ -67,3 +103,8 @@ See the [CONTRIBUTING](CONTRIBUTING.md) file for how to help out.
 
 ## License
 LTVision is licensed under the BSD-style license, as found in the LICENSE file.
+
+
+<p align="center">
+  <img src="./website/static/img/oss_logo.png" alt="logo" width="20%"/>
+</p>
