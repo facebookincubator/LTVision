@@ -4,6 +4,7 @@
 # LICENSE file in the root directory of this source tree.
 
 """Module providing a class for initial analysis"""
+import os
 from itertools import product
 from typing import Dict, List
 
@@ -156,7 +157,7 @@ class LTVexploratory:
 
         data_events = self.joined_df[~self.joined_df[self.event_time_col].isnull()]
         print(
-            f"""  
+            f"""
             table:         self.data_event
             date start:    {data_events[self.event_time_col].min()}
             date end:      {data_events[self.event_time_col].max()}
@@ -809,8 +810,50 @@ class LTVexploratory:
 
         output_txt = f"""
         By adopting a predicted LTV (pLTV) based strategy for your marketing campaigns, we estimate a maximum increase of {100*rel_impact:.1f}% in revenue.
-        This increase represents ${abs_impact:.0f} in revenue for the time period and scope used by the data provided.  
+        This increase represents ${abs_impact:.0f} in revenue for the time period and scope used by the data provided.
         """
         print(output_txt)
 
         return data
+
+    def download_data(
+        self,
+        df: pd.DataFrame,
+        filename: str = "data.csv",
+        path: str = None,
+        overwrite: bool = False,
+    ) -> None:
+        """
+        Save the raw data behind the output as a CSV file.
+        Args:
+            df (pd.DataFrame): The dataframe containing the data to be saved.
+            filename (str, optional): The filename for the saved CSV file. Defaults to "data.csv".
+            path (str, optional): The custom path where the file will be saved. Defaults to None, which uses the current working directory.
+            overwrite (bool, optional): Whether to overwrite an existing file without prompting. Defaults to False.
+        Raises:
+            ValueError: If the filename is not a string or if the path is not a valid directory path.
+            OSError: If the program does not have permission to write to the specified path.
+        """
+        if not isinstance(filename, str):
+            raise ValueError("Filename must be a string")
+        if path is None:
+            path = os.getcwd()
+        try:
+            # Construct the full file path
+            file_path = os.path.join(path, filename)
+            # Create the directory if it does not exist
+            os.makedirs(path, exist_ok=True)
+            # Check if a file with the same name already exists
+            if os.path.exists(file_path) and not overwrite:
+                overwrite_prompt = input(
+                    f"A file named {filename} already exists in the specified directory. Do you want to overwrite it? (y/n): "
+                )
+                if overwrite_prompt.lower() != "y":
+                    return
+            elif os.path.exists(file_path) and overwrite:
+                print(f"Overwriting existing file {filename}...")
+            # Save the dataframe as a CSV file
+            df.to_csv(file_path, index=False)
+            print(f"Data saved to {file_path}")
+        except OSError as e:
+            print(f"Error saving data: {e}")
