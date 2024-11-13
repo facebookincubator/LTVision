@@ -5,24 +5,26 @@
 
 """Module providing a class for rendering graphs"""
 
-from typing import List, Dict
-import pandas as pd
-import numpy as np
-import seaborn as sns
-import matplotlib.pyplot as plt
-from matplotlib.ticker import PercentFormatter, FuncFormatter
+from typing import Dict, List
+
 import matplotlib
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
 import plotly
-import plotly.graph_objects as go
 import plotly.express as px
-from src.aux import lag, cumsum, drop_duplicates
+import plotly.graph_objects as go
+import seaborn as sns
+from matplotlib.ticker import FuncFormatter, PercentFormatter
+from src.aux import cumsum, drop_duplicates, lag
 
 
 class Graph:
     """
     This class generates plots (mainly bar and line plots) and configure their settings to achieve a better aesthetic.
-    With this class, it is easier to have all plots in the same standard and similar appereance 
+    With this class, it is easier to have all plots in the same standard and similar appereance
     """
+
     def __init__(
         self,
         zero_indexed: bool = True,
@@ -153,11 +155,13 @@ class Graph:
             "weight": self.legend_weight,
             "size": self.legend_text_size,
         }
+        legend = grid.ax.get_legend()
+        if legend is not None:
+            for text in legend.get_texts():
+                plt.setp(text, **font)
 
-        for text in grid.ax.legend().get_texts():
-            plt.setp(text, **font)
-
-    def set_ax_standard(self,
+    def set_ax_standard(
+        self,
         ax: sns.axisgrid.FacetGrid,
         xlabel: str,
         ylabel: str,
@@ -190,7 +194,6 @@ class Graph:
         )
         return ax
 
-
     def _set_standard(
         self,
         data: pd.DataFrame,
@@ -215,6 +218,8 @@ class Graph:
         grid.figure.set_size_inches(
             self.figure_size_inches[0], self.figure_size_inches[1]
         )
+        grid.ax.set_xticks(grid.ax.get_xticks())
+        grid.ax.set_yticks(grid.ax.get_yticks())
         grid.ax.set_xticklabels(
             grid.ax.get_xticklabels(),
             fontsize=self.axis_tick_text_size,
@@ -385,18 +390,17 @@ class Graph:
 
         return grid
 
-
     def grid_plot(
         self,
         data: pd.DataFrame,
         x_axis: str,
         y_axis: str,
         annot_values: str,
-        fmt: str='.1%',
-        cmap: str='Blues',
-        cbar: bool=False,
-        annotate: bool=True,
-        annot_font_size: int=20,
+        fmt: str = ".1%",
+        cmap: str = "Blues",
+        cbar: bool = False,
+        annotate: bool = True,
+        annot_font_size: int = 20,
         xlabel="",
         ylabel="",
         title: str = "",
@@ -435,7 +439,7 @@ class Graph:
         data = data.copy() if data_filter is None else data.query(data_filter).copy()
         data = data.pivot(index=y_axis, columns=x_axis, values=annot_values)
 
-        annot_fmt = {'fontsize': annot_font_size}
+        annot_fmt = {"fontsize": annot_font_size}
 
         with sns.axes_style(self.plot_style):
 
@@ -446,23 +450,22 @@ class Graph:
                 cmap=cmap,
                 cbar=cbar,
                 linewidths=0.5,
-                linecolor='gray',
-                annot_kws=annot_fmt
-                )
+                linecolor="gray",
+                annot_kws=annot_fmt,
+            )
 
             ax = self.set_ax_standard(ax, xlabel, ylabel, title)
 
         return ax.get_figure()
-    
 
     def heatmap_plot(
         self,
         pivoted_data: pd.DataFrame,
-        fmt: str='.1%',
-        cmap: str='crest',
-        cbar: bool=False,
-        annotate: bool=True,
-        annot_font_size: int=None,
+        fmt: str = ".1%",
+        cmap: str = "crest",
+        cbar: bool = False,
+        annotate: bool = True,
+        annot_font_size: int = None,
         xlabel="",
         ylabel="",
         title: str = "",
@@ -493,14 +496,15 @@ class Graph:
             data_filter: str = None,
         """
 
-        
         # add a mask to make the matrix (upper) triangular, cleaning it up
         mask = np.ones_like(pivoted_data, dtype=bool)
         mask[np.triu_indices_from(mask)] = False
 
         # adapt annot_font_size depending on size of the data if None, else use the one defined
-        annot_font_size = 200 / len(pivoted_data) if annot_font_size is None else annot_font_size
-        annot_fmt = {'fontsize': annot_font_size}
+        annot_font_size = (
+            200 / len(pivoted_data) if annot_font_size is None else annot_font_size
+        )
+        annot_fmt = {"fontsize": annot_font_size}
 
         with sns.axes_style(self.plot_style):
 
@@ -512,33 +516,35 @@ class Graph:
                 cmap=cmap,
                 cbar=cbar,
                 linewidths=0.5,
-                linecolor='white',
-                annot_kws=annot_fmt
-                )
+                linecolor="white",
+                annot_kws=annot_fmt,
+            )
 
             ax = self.set_ax_standard(ax, xlabel, ylabel, title)
 
         return ax.get_figure()
+
 
 class InteractiveChart:
     """
     This class is mostly an interface to plotly, but with some standards for the visualizations (e.g. font, font size, image shape) pre-defined
     With this class, it is easier to have all plots in the same standard and similar appereance
     """
+
     def __init__(
-            self,
-            legend_out: bool = False,
-            font:str='Avenir',
-            txt_size:int=14,
-            title_size:int=18,
-            img_shape=(1200, 600),
-            bargap: float=0.1,
-            bar_opacity: float=0.8,
-            pad_percentage: float=0.01
-            ):
+        self,
+        legend_out: bool = False,
+        font: str = "Avenir",
+        txt_size: int = 14,
+        title_size: int = 18,
+        img_shape=(1200, 600),
+        bargap: float = 0.1,
+        bar_opacity: float = 0.8,
+        pad_percentage: float = 0.01,
+    ):
         """
         - legend_out: whether the legend of the colors should be 'inside' or outside the plot
-        - 
+        -
         """
 
         self.legend_out = legend_out
@@ -552,7 +558,7 @@ class InteractiveChart:
 
     def _apply_fonts_standards(self, fig):
         """
-        Apply font standards to all text parts of the 
+        Apply font standards to all text parts of the
         """
         fig.update_layout(font=dict(family=self.font, size=self.txt_size))
         fig.update_layout(title_font=dict(family=self.font, size=self.title_size))
@@ -562,13 +568,15 @@ class InteractiveChart:
     def _apply_figure_standards(self, fig):
         """
         Apply standard regarding
-            - background color of the chart: lightest gray 
+            - background color of the chart: lightest gray
             - background color around chart: white
             - color of the X- and Y-axis: light gray
             - image size and shape
         """
         fig.update_layout(plot_bgcolor="#F1F1F1", paper_bgcolor="white")
-        fig.update_layout(xaxis=dict(linecolor='lightgray'), yaxis=dict(linecolor='lightgray'))
+        fig.update_layout(
+            xaxis=dict(linecolor="lightgray"), yaxis=dict(linecolor="lightgray")
+        )
         fig.update_layout(width=self.img_shape[0], height=self.img_shape[1])
 
     def _apply_lines_standards(self, fig):
@@ -578,34 +586,44 @@ class InteractiveChart:
         self._apply_fonts_standards(fig)
         self._apply_figure_standards(fig)
         self._apply_lines_standards(fig)
-    
-    @staticmethod
-    def _transform_yaxis_in_perc(fig, precision:int=0):
-        fig.update_layout(yaxis_tickformat=f'.{precision}%')
 
     @staticmethod
-    def _transform_yaxis_in_dollars(fig, precision:int=0):
+    def _transform_yaxis_in_perc(fig, precision: int = 0):
+        fig.update_layout(yaxis_tickformat=f".{precision}%")
+
+    @staticmethod
+    def _transform_yaxis_in_dollars(fig, precision: int = 0):
         fig.update_layout(yaxis=dict(tickformat=f"$.{precision}"))
 
     def _transform_yaxis_tickformat(self, fig, tickformat: str, precision: int) -> None:
         if tickformat == "":
-            fig.update_layout(yaxis_tickformat=f'.{precision}')
+            fig.update_layout(yaxis_tickformat=f".{precision}")
         elif "$" in tickformat:
             self._transform_yaxis_in_dollars(fig, precision)
         elif "%" in tickformat:
             self._transform_yaxis_in_perc(fig, precision)
         else:
-            raise ValueError(f"Tick formart [{tickformat}] was not recognized. Only possible values are an empty string for numbers, $ for dollars, and % for percentages")
-    
+            raise ValueError(
+                f"Tick formart [{tickformat}] was not recognized. Only possible values are an empty string for numbers, $ for dollars, and % for percentages"
+            )
+
     @staticmethod
-    def _append_txt_to_yaxis_labels(fig, precision:int=0):
+    def _append_txt_to_yaxis_labels(fig, precision: int = 0):
         fig.update_layout(yaxis=dict(tickformat=f"$.{precision}"))
 
     @staticmethod
     def _add_title(fig, title: str) -> None:
         fig.update_layout(title=title)
 
-    def line_chart(self, data: pd.DataFrame, xaxis:str, yaxis: str, title:str="", precision: int=0, tickformat: str=""):
+    def line_chart(
+        self,
+        data: pd.DataFrame,
+        xaxis: str,
+        yaxis: str,
+        title: str = "",
+        precision: int = 0,
+        tickformat: str = "",
+    ):
         fig = px.line(data, x=xaxis, y=yaxis, title=title)
         self._transform_yaxis_tickformat(fig, tickformat, precision)
         self._apply_standards(fig)
@@ -613,22 +631,46 @@ class InteractiveChart:
         fig.update_traces(line=dict(width=1))
         return fig
 
-    
-    def bar_chart(self, data: pd.DataFrame, xaxis:str, yaxis: str, color = None, title:str="", precision:int=0, tickformat: str=""):
+    def bar_chart(
+        self,
+        data: pd.DataFrame,
+        xaxis: str,
+        yaxis: str,
+        color=None,
+        title: str = "",
+        precision: int = 0,
+        tickformat: str = "",
+    ):
         fig = px.bar(data, x=xaxis, y=yaxis, color=color, title=title)
         self._transform_yaxis_tickformat(fig, tickformat, precision)
         self._apply_standards(fig)
         self._add_title(fig, title)
         return fig
-    
-    def histogram_chart(self, data: pd.DataFrame, xaxis:str, yaxis: str, title:str="", precision:int=0):
-        fig = px.histogram(data, x=xaxis, y=yaxis, nbins=data.shape[0], opacity=self.bar_opacity)
+
+    def histogram_chart(
+        self,
+        data: pd.DataFrame,
+        xaxis: str,
+        yaxis: str,
+        title: str = "",
+        precision: int = 0,
+    ):
+        fig = px.histogram(
+            data, x=xaxis, y=yaxis, nbins=data.shape[0], opacity=self.bar_opacity
+        )
         self._apply_standards(fig)
         self._transform_yaxis_in_perc(fig, precision)
         self._add_title(fig, title)
         return fig
-    
-    def flow_chart(self, data: pd.DataFrame, source:str, target: str, values: str, title: str="", ):
+
+    def flow_chart(
+        self,
+        data: pd.DataFrame,
+        source: str,
+        target: str,
+        values: str,
+        title: str = "",
+    ):
         """
         This method creates a dataframe of flow from 'source' to 'target' based on a given quantity
         It is expected that the data is already orders in a way that it wants to be displayed. If not,
@@ -640,9 +682,11 @@ class InteractiveChart:
         targets = data[target].to_list()
         quantity = data[values].to_list()
 
-        nodes = drop_duplicates(sources + targets) # find the unique nodes in both source and targets
+        nodes = drop_duplicates(
+            sources + targets
+        )  # find the unique nodes in both source and targets
         n_nodes = len(nodes)
-        
+
         # get the number of colors we need based unique classes. Need to duplicate to make equivalent
         # classes in [sources] and [targets] have the same colors
         palette = px.colors.qualitative.Plotly[0:n_nodes] * 2
@@ -655,9 +699,13 @@ class InteractiveChart:
             """
             Return the horizontal positions for the nodes. First values refers to [sources] and last to [targets]
             """
-            return [0.001] * n_nodes + [0.999] * n_nodes # they cannot be 0 and 1 because it overlaps with title
-        
-        def get_vertical_positions(sources: list, targets: list, quantity: list, classes_gap: float=0.05) -> List[float]:
+            return [0.001] * n_nodes + [
+                0.999
+            ] * n_nodes  # they cannot be 0 and 1 because it overlaps with title
+
+        def get_vertical_positions(
+            sources: list, targets: list, quantity: list, classes_gap: float = 0.05
+        ) -> List[float]:
             """
             Return the vertical positions for the nodes. First values refers to [sources] and last to [targets]
             """
@@ -665,23 +713,41 @@ class InteractiveChart:
             y_positions_target = {}
             # calculate the vertical size of each node
             for i, source in enumerate(sources):
-                y_positions_source[source] = y_positions_source.get(source, 0) + quantity[i]
-                y_positions_target[targets[i]] = y_positions_target.get(targets[i], 0) + quantity[i]
-            
+                y_positions_source[source] = (
+                    y_positions_source.get(source, 0) + quantity[i]
+                )
+                y_positions_target[targets[i]] = (
+                    y_positions_target.get(targets[i], 0) + quantity[i]
+                )
+
             # Calculate where the node's vertical position should end
-            y_positions_source = cumsum(list(y_positions_source.values()), constant_delta=classes_gap)
-            y_positions_target = cumsum(list(y_positions_target.values()), constant_delta=classes_gap)
+            y_positions_source = cumsum(
+                list(y_positions_source.values()), constant_delta=classes_gap
+            )
+            y_positions_target = cumsum(
+                list(y_positions_target.values()), constant_delta=classes_gap
+            )
 
             # Lag to get next position, because plotly receives where nodes begin
             y_positions_source = lag(y_positions_source, 1, coalesce=classes_gap)
             y_positions_target = lag(y_positions_target, 1, coalesce=classes_gap)
 
             return y_positions_source + y_positions_target
-        
-        def get_nodes_positions(sources: list, targets: list, quantity: list, n_nodes: int, classes_gap: float=0.05) -> (List[float], List[float]):
-            return get_horizontal_positions(n_nodes), get_vertical_positions(sources, targets, quantity, classes_gap)
 
-        x_positions, y_positions = get_nodes_positions(sources, targets, quantity, n_nodes)
+        def get_nodes_positions(
+            sources: list,
+            targets: list,
+            quantity: list,
+            n_nodes: int,
+            classes_gap: float = 0.05,
+        ) -> (List[float], List[float]):
+            return get_horizontal_positions(n_nodes), get_vertical_positions(
+                sources, targets, quantity, classes_gap
+            )
+
+        x_positions, y_positions = get_nodes_positions(
+            sources, targets, quantity, n_nodes
+        )
         # pad between classes needs to consider #classes and size of image
         pad_size = self.img_shape[1] * (n_nodes - 1) * self.pad_percentage
 
@@ -692,33 +758,25 @@ class InteractiveChart:
         node = dict(
             pad=pad_size,
             thickness=20,
-            line=dict(color='grey', width=0.5),
-            color = palette,
+            line=dict(color="grey", width=0.5),
+            color=palette,
             x=x_positions,
             y=y_positions,
-            label=nodes
+            label=nodes,
         )
-        link = dict(
-            source=sources_idxs,
-            target=targets_idxs,
-            value=quantity
-        )
+        link = dict(source=sources_idxs, target=targets_idxs, value=quantity)
 
         # replicate nodes so that the firsts represent the sources and the others the targets
-        nodes = nodes * 2 
+        nodes = nodes * 2
         # # Create the Sankey diagram
-        fig = go.Figure(go.Sankey(
-            arrangement = "snap",
-            node=node,
-            link=link
-        ))
+        fig = go.Figure(go.Sankey(arrangement="snap", node=node, link=link))
         # Update the layout of the figure
         self._apply_standards(fig)
         self._add_title(fig, "User Flow Between Classes")
         return fig
-    
 
-def save_plot(fig, file_path: str, dpi: int=200) -> None:
+
+def save_plot(fig, file_path: str, dpi: int = 200) -> None:
     """
     Save figure in the defined location
     Inputs
@@ -737,4 +795,6 @@ def save_plot(fig, file_path: str, dpi: int=200) -> None:
     elif isinstance(fig, matplotlib.figure.Figure):
         fig.savefig(file_path, bbox_inches="tight", dpi=dpi)
     else:
-        raise TypeError(f"Input [fig] is of type {type(fig)} is not a valid type. It must be either seaborn.axisgrid.FacetGrid or plotly.graph_objs._figure.Figure")
+        raise TypeError(
+            f"Input [fig] is of type {type(fig)} is not a valid type. It must be either seaborn.axisgrid.FacetGrid or plotly.graph_objs._figure.Figure"
+        )

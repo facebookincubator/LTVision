@@ -349,8 +349,6 @@ class LTVexploratory:
         # Adjust the x-axis ticks to every 10%
         for ax in fig.axes.flat:  # Iterate over all axes in the FacetGrid
             ax.set_xticks(np.arange(0, 1.1, 0.1))
-            # Add a legend
-            ax.legend()
         return fig, data
         """
         fig = self.graph.line_plot(
