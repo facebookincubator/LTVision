@@ -346,9 +346,21 @@ class LTVexploratory:
             y_format="%",
             title=f"Top spenders' cumulative contribution to total revenue (based on the first {days_limit} days since registration)",
         )
+        # Highlight % revenue contribution of top 5%, 10%, 20% of spenders
+        top_spenders = [0.05, 0.1, 0.2]
+        for spender in top_spenders:
+            revenue_contribution = data.loc[data["cshare_customers"] <= spender, "cshare_revenue"].max()
+            for ax in fig.axes.flat:  # Iterate over all axes in the FacetGrid
+                # Find the intersection point of the vertical line and the curve
+                intersection_x = spender
+                intersection_y = revenue_contribution
+                # Plot the vertical line up to the intersection point
+                ax.plot([intersection_x, intersection_x], [0, intersection_y], color='gray', linestyle='--')
+                ax.text(spender, revenue_contribution + 0.03, f"{revenue_contribution*100:.1f}%", ha='center', fontsize=25, color='navy')
         # Adjust the x-axis ticks to every 10%
         for ax in fig.axes.flat:  # Iterate over all axes in the FacetGrid
             ax.set_xticks(np.arange(0, 1.1, 0.1))
+            ax.set_xticks(list(ax.get_xticks()) + [0.05])  # Add a tick at 5%
         return fig, data
         """
         fig = self.graph.line_plot(
