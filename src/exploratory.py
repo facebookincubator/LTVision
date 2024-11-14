@@ -4,6 +4,7 @@
 # LICENSE file in the root directory of this source tree.
 
 """Module providing a class for initial analysis"""
+import math
 import os
 from itertools import product
 from typing import Dict, List
@@ -429,6 +430,13 @@ class LTVexploratory:
             y_format="%",
             title=title,
         )
+
+        if days_limit >= 7:
+            max_y = math.ceil(data[self.uuid_col].max() * 100) / 100
+            plt.fill_between([-0.5, 7.5], [0, 0], [max_y, max_y], alpha=0.3, color='lightblue')
+            # Set x-axis limits to prevent shifting
+            plt.xlim(data["dsi"].min() - 0.5, data["dsi"].max())
+
         # Add percentage labels on top of each bar
         for index, row in data.iterrows():
             plt.text(
@@ -534,6 +542,22 @@ class LTVexploratory:
             customer_revenue_data,
             title="Correlation matrix of revenue per user by different days since registration\n",
         )
+
+        # Highlight the day when correlation drops below 50%
+        correlation_threshold = 0.5
+        day_below_threshold = 0
+        for i in range(len(days_of_interest)):
+            if customer_revenue_data.iloc[i, 0] < correlation_threshold:
+                day_below_threshold = days_of_interest[i]
+                break
+        # 0.5 -> 7
+        # 1.5 -> 10
+        # 2.5 -> 13
+
+        # Calculate the x and y coordinate of the vertical line
+        x_coord = (day_below_threshold - optimization_window) / interval_size + 0.5
+        y_coord = 1 - (day_below_threshold - optimization_window) / (days_limit - optimization_window)
+        plt.axvline(x=x_coord, ymin=0, ymax=y_coord,color='navy', linestyle='--')
         return fig, customer_revenue_data
 
     @staticmethod
