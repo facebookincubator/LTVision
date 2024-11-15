@@ -357,7 +357,7 @@ class LTVexploratory:
                 intersection_y = revenue_contribution
                 # Plot the vertical line up to the intersection point
                 ax.plot([intersection_x, intersection_x], [0, intersection_y], color='gray', linestyle='--')
-                ax.text(spender, revenue_contribution + 0.03, f"{revenue_contribution*100:.1f}%", ha='center', fontsize=25, color='navy')
+                ax.text(spender, revenue_contribution + 0.03, f"{revenue_contribution*100:.1f}%", ha='center', fontsize=18, color='navy')
         # Adjust the x-axis ticks to every 10%
         for ax in fig.axes.flat:  # Iterate over all axes in the FacetGrid
             ax.set_xticks(np.arange(0, 1.1, 0.1))
