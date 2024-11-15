@@ -112,6 +112,23 @@ class LTVexploratory:
             self.data_events[self.event_time_col],
         ), f"The timestamp columns of the two input datasets are not the same. In the customers dataset it is of type [{self.data_customers[self.registration_time_col].dtype}], while in the events dataset it is of type [{self.data_customers[self.event_time_col].dtype}]"
 
+        # check the date range of the data, warn if it is too short
+        if (
+            self.data_customers[self.registration_time_col].max()
+            - self.data_customers[self.registration_time_col].min()
+        ).days < 90:
+            print(
+                "Warning: The date range of the customers data is too short. The analysis may not be accurate and some plots may not be generated."
+            )
+        if (
+            self.data_events[self.event_time_col].max()
+            - self.data_events[self.event_time_col].min()
+        ).days < 90:
+            print(
+                "Warning: The date range of the events data is too short. The analysis may not be accurate and some plots may not be generated."
+            )
+
+
     def _prep_df(self) -> None:
         # Left join customers and events data, so that you have a dataframe with all customers and their events (if no event, then timestamp is null)
         # just select some columns to make it easier to understand what is the information that is used and avoid join complications caused by the name of other columns
