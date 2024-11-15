@@ -1,10 +1,14 @@
+# Copyright (c) Meta Platforms, Inc. and affiliates.
+
+# This source code is licensed under the BSD-style license found in the
+# LICENSE file in the root directory of this source tree.
 from typing import List
 
 def drop_duplicates(seq: List) -> List:
     """
     Returns a de-duplicates version of the input.
     Requires the input to be iterable.
-    This method is necessary vs list(set(x)) as this doesn't keep the original order of the 
+    This method is necessary vs list(set(x)) as this doesn't keep the original order of the
     items.
     """
     seen = set()
@@ -14,7 +18,7 @@ def drop_duplicates(seq: List) -> List:
 
 def cumsum(values: List[float], constant_delta: float=0.0) -> List[float]:
     """
-    Calculates the cumulative sum of the list/vector passed 
+    Calculates the cumulative sum of the list/vector passed
     Doesn't change the values in place, instead return new instance
     """
     output = []
