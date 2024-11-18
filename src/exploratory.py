@@ -4,6 +4,7 @@
 # LICENSE file in the root directory of this source tree.
 
 """Module providing a class for initial analysis"""
+import math
 import os
 from itertools import product
 from typing import Dict, List
@@ -110,6 +111,23 @@ class LTVexploratory:
             self.data_customers[self.registration_time_col],
             self.data_events[self.event_time_col],
         ), f"The timestamp columns of the two input datasets are not the same. In the customers dataset it is of type [{self.data_customers[self.registration_time_col].dtype}], while in the events dataset it is of type [{self.data_customers[self.event_time_col].dtype}]"
+
+        # check the date range of the data, warn if it is too short
+        if (
+            self.data_customers[self.registration_time_col].max()
+            - self.data_customers[self.registration_time_col].min()
+        ).days < 90:
+            print(
+                "Warning: The date range of the customers data is too short. The analysis may not be accurate and some plots may not be generated."
+            )
+        if (
+            self.data_events[self.event_time_col].max()
+            - self.data_events[self.event_time_col].min()
+        ).days < 90:
+            print(
+                "Warning: The date range of the events data is too short. The analysis may not be accurate and some plots may not be generated."
+            )
+
 
     def _prep_df(self) -> None:
         # Left join customers and events data, so that you have a dataframe with all customers and their events (if no event, then timestamp is null)
@@ -346,9 +364,21 @@ class LTVexploratory:
             y_format="%",
             title=f"Top spenders' cumulative contribution to total revenue (based on the first {days_limit} days since registration)",
         )
+        # Highlight % revenue contribution of top 5%, 10%, 20% of spenders
+        top_spenders = [0.05, 0.1, 0.2]
+        for spender in top_spenders:
+            revenue_contribution = data.loc[data["cshare_customers"] <= spender, "cshare_revenue"].max()
+            for ax in fig.axes.flat:  # Iterate over all axes in the FacetGrid
+                # Find the intersection point of the vertical line and the curve
+                intersection_x = spender
+                intersection_y = revenue_contribution
+                # Plot the vertical line up to the intersection point
+                ax.plot([intersection_x, intersection_x], [0, intersection_y], color='gray', linestyle='--')
+                ax.text(spender, revenue_contribution + 0.03, f"{revenue_contribution*100:.1f}%", ha='center', fontsize=18, color='navy')
         # Adjust the x-axis ticks to every 10%
         for ax in fig.axes.flat:  # Iterate over all axes in the FacetGrid
             ax.set_xticks(np.arange(0, 1.1, 0.1))
+            ax.set_xticks(list(ax.get_xticks()) + [0.05])  # Add a tick at 5%
         return fig, data
         """
         fig = self.graph.line_plot(
@@ -417,6 +447,13 @@ class LTVexploratory:
             y_format="%",
             title=title,
         )
+
+        if days_limit >= 7:
+            max_y = math.ceil(data[self.uuid_col].max() * 100) / 100
+            plt.fill_between([-0.5, 7.5], [0, 0], [max_y, max_y], alpha=0.3, color='lightblue')
+            # Set x-axis limits to prevent shifting
+            plt.xlim(data["dsi"].min() - 0.5, data["dsi"].max())
+
         # Add percentage labels on top of each bar
         for index, row in data.iterrows():
             plt.text(
@@ -522,6 +559,22 @@ class LTVexploratory:
             customer_revenue_data,
             title="Correlation matrix of revenue per user by different days since registration\n",
         )
+
+        # Highlight the day when correlation drops below 50%
+        correlation_threshold = 0.5
+        day_below_threshold = 0
+        for i in range(len(days_of_interest)):
+            if customer_revenue_data.iloc[i, 0] < correlation_threshold:
+                day_below_threshold = days_of_interest[i]
+                break
+        # 0.5 -> 7
+        # 1.5 -> 10
+        # 2.5 -> 13
+
+        # Calculate the x and y coordinate of the vertical line
+        x_coord = (day_below_threshold - optimization_window) / interval_size + 0.5
+        y_coord = 1 - (day_below_threshold - optimization_window) / (days_limit - optimization_window)
+        plt.axvline(x=x_coord, ymin=0, ymax=y_coord,color='navy', linestyle='--')
         return fig, customer_revenue_data
 
     @staticmethod
