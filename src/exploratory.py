@@ -128,7 +128,6 @@ class LTVexploratory:
                 "Warning: The date range of the events data is too short. The analysis may not be accurate and some plots may not be generated."
             )
 
-
     def _prep_df(self) -> None:
         # Left join customers and events data, so that you have a dataframe with all customers and their events (if no event, then timestamp is null)
         # just select some columns to make it easier to understand what is the information that is used and avoid join complications caused by the name of other columns
@@ -367,14 +366,28 @@ class LTVexploratory:
         # Highlight % revenue contribution of top 5%, 10%, 20% of spenders
         top_spenders = [0.05, 0.1, 0.2]
         for spender in top_spenders:
-            revenue_contribution = data.loc[data["cshare_customers"] <= spender, "cshare_revenue"].max()
+            revenue_contribution = data.loc[
+                data["cshare_customers"] <= spender, "cshare_revenue"
+            ].max()
             for ax in fig.axes.flat:  # Iterate over all axes in the FacetGrid
                 # Find the intersection point of the vertical line and the curve
                 intersection_x = spender
                 intersection_y = revenue_contribution
                 # Plot the vertical line up to the intersection point
-                ax.plot([intersection_x, intersection_x], [0, intersection_y], color='gray', linestyle='--')
-                ax.text(spender, revenue_contribution + 0.03, f"{revenue_contribution*100:.1f}%", ha='center', fontsize=18, color='navy')
+                ax.plot(
+                    [intersection_x, intersection_x],
+                    [0, intersection_y],
+                    color="gray",
+                    linestyle="--",
+                )
+                ax.text(
+                    spender,
+                    revenue_contribution + 0.03,
+                    f"{revenue_contribution*100:.1f}%",
+                    ha="center",
+                    fontsize=18,
+                    color="navy",
+                )
         # Adjust the x-axis ticks to every 10%
         for ax in fig.axes.flat:  # Iterate over all axes in the FacetGrid
             ax.set_xticks(np.arange(0, 1.1, 0.1))
@@ -450,7 +463,9 @@ class LTVexploratory:
 
         if days_limit >= 7:
             max_y = math.ceil(data[self.uuid_col].max() * 100) / 100
-            plt.fill_between([-0.5, 7.5], [0, 0], [max_y, max_y], alpha=0.3, color='lightblue')
+            plt.fill_between(
+                [-0.5, 7.5], [0, 0], [max_y, max_y], alpha=0.3, color="lightblue"
+            )
             # Set x-axis limits to prevent shifting
             plt.xlim(data["dsi"].min() - 0.5, data["dsi"].max())
 
@@ -567,14 +582,12 @@ class LTVexploratory:
             if customer_revenue_data.iloc[i, 0] < correlation_threshold:
                 day_below_threshold = days_of_interest[i]
                 break
-        # 0.5 -> 7
-        # 1.5 -> 10
-        # 2.5 -> 13
 
         # Calculate the x and y coordinate of the vertical line
         x_coord = (day_below_threshold - optimization_window) / interval_size + 0.5
-        y_coord = 1 - (day_below_threshold - optimization_window) / (days_limit - optimization_window)
-        plt.axvline(x=x_coord, ymin=0, ymax=y_coord,color='navy', linestyle='--')
+        # only 1 block down from the diagonal
+        y_coord = (optimization_window - 0.4) / optimization_window
+        plt.axvline(x=x_coord, ymin=0, ymax=y_coord, color="red", linestyle="--")
         return fig, customer_revenue_data
 
     @staticmethod
