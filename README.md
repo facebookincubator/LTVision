@@ -4,7 +4,7 @@
 
 # LTVision
 
-LTVision is an open-source library designed to empower businesses to unlock the full potential of predicted customer lifetime value (pLTV) modeling. Our vision is to lead the industry by building a community of pLTV practitioners that drives innovation and creates value for everyone in the ecosystem through expertise, education, and thought leadership.
+LTVision is an open-source library designed to empower businesses to unlock the full potential of predicted customer lifetime value (pLTV) modeling. Our vision is to lead the industry by building a community of pLTV practitioners that drives innovation and creates value for everyone in the pLTV ecosystem through expertise, education, and thought leadership.
 
 **What is LTVision?**
 --------------------
@@ -17,7 +17,7 @@ This module is now available and focuses on generating customer insights and est
 
 ### Module 2: User-Level pLTV Model
 
-Currently in development, this module will provide a code base for building user-level pLTV models. This will enable businesses to create customized models that drive long-term revenue growth and sustainable business success.
+Currently in development, this module will provide a code base for building user-level pLTV models that businesses can use as an optimization signal on digital marketing platforms to drive long-term business growth.
 
 **Getting Started**
 -------------------
@@ -25,11 +25,11 @@ Currently in development, this module will provide a code base for building user
 To get started with LTVision, explore our repository and discover how our library can help you unlock the full potential of pLTV modeling.
 
 * Explore our code base to learn more about LTVision's features and capabilities.
-* Share your<a href="[https://docs.google.com/forms/d/e/1FAIpQLSej8tQdsuwQ71_cLU-k5s2n933_xuQ5a8pIt1jYtlVcMEmDlA/viewform?usp=sharing]">feedback</a> on Module 1
+* Share your <a href="[https://docs.google.com/forms/d/e/1FAIpQLSej8tQdsuwQ71_cLU-k5s2n933_xuQ5a8pIt1jYtlVcMEmDlA/viewform?usp=sharing]">feedback</a> on Module 1
 * Join our community to contribute to the development of LTVision and stay up-to-date with the latest updates.
 
 ### Requirements
-LTVision requires or works with
+LTVision requires
 * python 3.8.5 or newer.
 
 
@@ -44,12 +44,12 @@ git clone https://github.com/facebookincubator/LTVision.git
 
 **2. Creating an environment**
 
-  * Creating a new virtual environment:
+  * Create a new virtual environment:
     ```python
     python3 -m venv venv
     ```
 
-  * Activating a new virtual environment.
+  * Activate the new virtual environment.
 
     for Mac:
     ```python
@@ -60,12 +60,12 @@ git clone https://github.com/facebookincubator/LTVision.git
     activate venv
     ```
 
-  * Setting up requirements:
+  * Install requirements:
     ```python
     pip3 install -r requirements.txt
     ```
 
-  * Running jupyter notebook with created environment.
+  * Run jupyter notebook with created environment.
 
     To run this step, first make sure that `jupyter notebook`, `ipython` and `ipykernel` packages are installed.
     ```python
@@ -75,9 +75,9 @@ git clone https://github.com/facebookincubator/LTVision.git
 
 **3. Getting started**
 
-Use `example.ipynb` for getting started.
+Use `example.ipynb` to get started.
 
-To run this notebook with new environment, go to Kernel -> Change kernel -> venv .
+To run this notebook with new environment, go to Kernel -> Change kernel -> venv.
 
 **Contribute to LTVision**
 -------------------------
