@@ -1,12 +1,16 @@
 # Copyright (c) Meta Platforms, Inc. and affiliates.
 
-# This source code is licensed under the BSD-style license found in the
-# LICENSE file in the root directory of this source tree.
+# This open source code is licensed under the BSD-style license,
+# which can be found in the LICENSE file in the root directory of this source tree.
 
-This file lists those central to the development of this OST, whose full contribution is not accurately reflected in the commit history:
-- Mariia Radosteva 
+This file lists key contributors to the development of this OST, whose full contribution may not be fully reflected in the commit history:
+- Mariia Radosteva
 - Arun TV
-- Mateusz Wyszynski
+- Luke McGuinness
 - Paul Fagan
-- Qiong Wu
+- Mateusz Wyszynski
+- Raphael Tamaki
+- Mikael Wallgren
+- Omer Kayabasi
 - Sharad Jaiswal
+- Qiong Wu
