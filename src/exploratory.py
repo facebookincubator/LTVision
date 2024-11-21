@@ -408,7 +408,7 @@ class LTVexploratory:
         """
 
     def plot_customers_histogram_per_conversion_day(
-        self, days_limit: int, optimization_window: int = 7, truncate_share=1.0
+        self, days_limit: int = 60, optimization_window: int = 7, truncate_share=1.0
     ) -> None:
         """
         Plots the distribution of all customers that converted until (days_limit) days after registration per conversion day
@@ -423,6 +423,11 @@ class LTVexploratory:
             (end_events_date - self.joined_df[self.registration_time_col]).dt.days
             >= days_limit
         ].copy()
+
+        # hard cap the histogram to 60 days
+        if days_limit > 60:
+            print("Warning: the histogram is based on the first 60 days of the data.")
+            days_limit = 60
 
         # Remove customers who never had a purchase and ensure all customers have the same opportunity window
         data = data[data[self.value_col] > 0]
