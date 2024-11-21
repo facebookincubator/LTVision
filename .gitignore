@@ -22,3 +22,4 @@ pytest/
 
 #Ignore output images to reduce repository size
 images/
+iframe_figures/
