@@ -7,7 +7,7 @@ venv/
 *.txt
 !requirements.txt
 *.pickle
-*.pdf
+# *.pdf
 *.parquet
 
 # Ignore files related to API keys
