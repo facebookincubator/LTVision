@@ -12,7 +12,7 @@ Our vision is to lead the industry by building a community of pLTV practitioners
 
 Our first release - Module 1, is now available. It focuses on generating customer insights and estimating the potential pLTV opportunity size, enabling business decision-makers to evaluate the potential ROI of this initiative before investing in a pLTV model and pLTV strategy.
 
-LTVision is the first step on the pLTV journey. To learn more about Meta’s thought leadership on pLTV, please download our [whitepaper](Predicting-LTV-Whitepaper.pdf).
+LTVision is the first step on the pLTV journey. To learn more about Meta’s thought leadership on pLTV, please download our [whitepaper](https://github.com/facebookincubator/LTVision/raw/refs/heads/main/Predicting-LTV-Whitepaper.pdf#).
 
 # Getting Started
 -------------------
