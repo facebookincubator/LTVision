@@ -5,7 +5,7 @@
 
 """Module providing a class for rendering graphs"""
 
-from typing import Dict, List
+from typing import Dict, List, Tuple
 
 import matplotlib
 import matplotlib.pyplot as plt
@@ -669,7 +669,9 @@ class InteractiveChart:
         source: str,
         target: str,
         values: str,
-        title: str = "",
+        title: str = "User Flow Between Classes",
+        source_day_limit: int = 7,
+        target_day_limit: int = 60,
     ):
         """
         This method creates a dataframe of flow from 'source' to 'target' based on a given quantity
@@ -745,6 +747,88 @@ class InteractiveChart:
                 sources, targets, quantity, classes_gap
             )
 
+        def hex_to_rgb(hex_color):
+            hex_color = hex_color.lstrip("#")
+            return tuple(int(hex_color[i : i + 2], 16) for i in (0, 2, 4))
+
+        def get_custom_data(
+            sources, targets, quantity, data
+        ) -> Tuple[List[dict], List[dict]]:
+            # Calculate percentages for each category
+            source_percentages = {
+                node: sum([q for s, q in zip(sources, quantity) if s == node])
+                / sum(quantity)
+                * 100
+                for node in set(sources)
+            }
+            target_percentages = {
+                node: sum([q for t, q in zip(targets, quantity) if t == node])
+                / sum(quantity)
+                * 100
+                for node in set(targets)
+            }
+
+            # Create custom data lists for source and target nodes
+            source_custom_data = [
+                {
+                    "percentage": f"{source_percentages.get(node, 0):.2f}%",
+                    "text": f"{source_day_limit} day {node}: {source_percentages.get(node, 0):.2f}% of customers",
+                    "number_of_customers": sum(
+                        data.loc[data["early_class"] == node, "customer_count"]
+                    ),
+                }
+                for node in nodes[:n_nodes]
+            ]
+            target_custom_data = [
+                {
+                    "percentage": f"{target_percentages.get(node, 0):.2f}%",
+                    "text": f"{target_day_limit} day {node}: {target_percentages.get(node, 0):.2f}% of customers",
+                    "number_of_customers": sum(
+                        data.loc[data["late_class"] == node, "customer_count"]
+                    ),
+                }
+                for node in nodes[n_nodes:]
+            ]
+
+            # Calculate total quantity for each source node
+            source_totals = {
+                node: sum([q for s, q in zip(sources, quantity) if s == node])
+                for node in set(sources)
+            }
+            # Calculate total quantity for each target node
+            target_totals = {
+                node: sum([q for t, q in zip(targets, quantity) if t == node])
+                for node in set(targets)
+            }
+            # Calculate link percentages
+            link_percentages_source = [
+                f"{q / source_totals[sources[i]] * 100:.2f}%"
+                for i, q in enumerate(quantity)
+            ]
+            link_percentages_target = [
+                f"{q / target_totals[targets[i]] * 100:.2f}%"
+                for i, q in enumerate(quantity)
+            ]
+            # Concatenate the custom data lists
+            custom_data = source_custom_data + target_custom_data
+            link_custom_data = [
+                {
+                    "source_percentage": link_percentages_source[i],
+                    "target_percentage": link_percentages_target[i],
+                    "text": f"This user flow represents {link_percentages_source[i]} of {source_day_limit}-day-{sources[i]} and {link_percentages_target[i]} of {target_day_limit}-day-{targets[i]}",
+                    "number_of_customers": sum(
+                        data.loc[
+                            (data["early_class"] == sources[i])
+                            & (data["late_class"] == targets[i]),
+                            "customer_count",
+                        ]
+                    ),
+                }
+                for i, q in enumerate(quantity)
+            ]
+
+            return custom_data, link_custom_data
+
         x_positions, y_positions = get_nodes_positions(
             sources, targets, quantity, n_nodes
         )
@@ -755,24 +839,46 @@ class InteractiveChart:
         # value in nodes represent a node. So we have to create 2 nodes with the same names
         nodes = nodes * 2
 
+        node_custom_data, link_custom_data = get_custom_data(
+            sources, targets, quantity, data
+        )
+
         node = dict(
             pad=pad_size,
             thickness=20,
             line=dict(color="grey", width=0.5),
-            color=palette,
+            color=[
+                f"rgba({r}, {g}, {b}, 0.8)"
+                for r, g, b in [hex_to_rgb(c) for c in palette]
+            ],
             x=x_positions,
             y=y_positions,
             label=nodes,
+            customdata=node_custom_data,
+            hovertemplate="%{customdata.text}<extra>%{customdata.number_of_customers} customers</extra>",
         )
-        link = dict(source=sources_idxs, target=targets_idxs, value=quantity)
+        link = dict(
+            source=sources_idxs,
+            target=targets_idxs,
+            color=[node["color"][src].replace("0.8", str(0.4)) for src in sources_idxs],
+            value=quantity,
+            customdata=link_custom_data,
+            hovertemplate="%{customdata.text}<extra>%{customdata.number_of_customers} customers</extra>",
+        )
 
         # replicate nodes so that the firsts represent the sources and the others the targets
         nodes = nodes * 2
         # # Create the Sankey diagram
-        fig = go.Figure(go.Sankey(arrangement="snap", node=node, link=link))
+        fig = go.Figure(
+            go.Sankey(
+                arrangement="snap",
+                node=node,
+                link=link,
+            )
+        )
         # Update the layout of the figure
         self._apply_standards(fig)
-        self._add_title(fig, "User Flow Between Classes")
+        self._add_title(fig, title)
         return fig
 
 

@@ -766,6 +766,8 @@ class LTVexploratory:
             ]
         ]
 
+        # Create a new column for the actual customer count because the modified customer column is somehow used in the flow chart UI rendering.
+        data["customer_count"] = data["customers"]
         data["customers"] = data["customers"] / data["customers"].sum()
         self.interactive_chart.legend_out = True
         fig = self.interactive_chart.flow_chart(
@@ -773,7 +775,9 @@ class LTVexploratory:
             "early_class",
             "late_class",
             "customers",
-            title=f"Purchaser Flow Between an early point in time - {early_limit} days and a future point in time - {days_limit} days",
+            title=f"Purchaser Flow Between an early point in time ({early_limit} days) and a future point in time ({days_limit} days)",
+            source_day_limit=early_limit,
+            target_day_limit=days_limit,
         )
 
         return fig, visualization_data
