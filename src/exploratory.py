@@ -39,7 +39,7 @@ class LTVexploratory:
         event_name_col: str = "event_name",
         value_col: str = "purchase_value",
         segment_feature_cols: List[str] = None,
-        roundingPrecision: int = 5,
+        rounding_precision: int = 5,
     ):
         self.data_customers = data_customers
         self.data_events = data_events
@@ -47,7 +47,7 @@ class LTVexploratory:
         self._period_for_ltv = 7 * 10
         self.graph = Graph()
         self.interactive_chart = InteractiveChart()
-        self.roundingPrecision = roundingPrecision
+        self.rounding_precision = rounding_precision
 
         # store information about the columns of the dataframes
         self.uuid_col = uuid_col
@@ -784,7 +784,7 @@ class LTVexploratory:
             title=f"Purchaser Flow Between an early point in time - {early_limit} days and a future point in time - {days_limit} days",
         )
 
-        return fig, visualization_data.round(self.roundingPrecision)
+        return fig, visualization_data.round(self.rounding_precision)
 
     def _get_upper_limit_ltv(
         self, users_flow_df: pd.DataFrame, is_mobile: bool
@@ -891,7 +891,7 @@ class LTVexploratory:
         """
         print(output_txt)
 
-        return data.round(self.roundingPrecision)
+        return data.round(self.rounding_precision)
 
     def download_data(
         self,
