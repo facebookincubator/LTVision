@@ -132,7 +132,9 @@ class LTVexploratory:
 
     def _prep_df(self) -> None:
         # Left join customers and events data, so that you have a dataframe with all customers and their events (if no event, then timestamp is null)
-        # just select some columns to make it easier to understand what is the information that is used and avoid join complications caused by the name of other columns
+        # just select some columns to make it easier to understand what is the
+        # information that is used and avoid join complications caused by the
+        # name of other columns
         self.joined_df = pd.merge(
             self.data_customers,
             self.data_events,
@@ -264,13 +266,15 @@ class LTVexploratory:
             >= days_limit
         ].copy()
 
-        # Remove customers who never had a purchase and ensure all customers have the same opportunity window
+        # Remove customers who never had a purchase and ensure all customers
+        # have the same opportunity window
         data = data[
             (data[self.event_time_col] - data[self.registration_time_col]).dt.days
             <= days_limit
         ]
 
-        # Count how many purchase customers had (defined by value > 0) and then how many customers are in each place
+        # Count how many purchase customers had (defined by value > 0) and then
+        # how many customers are in each place
         data = data[data[self.value_col] > 0]
         data = (
             data.groupby(self.uuid_col)[self.value_col]
@@ -324,13 +328,15 @@ class LTVexploratory:
             >= days_limit
         ].copy()
 
-        # Remove customers who never had a purchase and ensure all customers have the same opportunity window
+        # Remove customers who never had a purchase and ensure all customers
+        # have the same opportunity window
         data = data[
             (data[self.event_time_col] - data[self.registration_time_col]).dt.days
             <= days_limit
         ]
 
-        # Count how many purchase customers had (defined by value > 0) and then how many customers are in each place
+        # Count how many purchase customers had (defined by value > 0) and then
+        # how many customers are in each place
         data = data[data[self.value_col] > 0]
         data = (
             data.groupby(self.uuid_col)[self.value_col]
@@ -339,7 +345,8 @@ class LTVexploratory:
             .sort_values(self.value_col, ascending=False)
         )
 
-        # Calculate total revenue and group customers together based on the granilarity
+        # Calculate total revenue and group customers together based on the
+        # granilarity
         total_revenue = data[self.value_col].sum()
         total_customers = data.shape[0]
         data["cshare_customers"] = [
@@ -372,7 +379,8 @@ class LTVexploratory:
                 data["cshare_customers"] <= spender, "cshare_revenue"
             ].max()
             for ax in fig.axes.flat:  # Iterate over all axes in the FacetGrid
-                # Find the intersection point of the vertical line and the curve
+                # Find the intersection point of the vertical line and the
+                # curve
                 intersection_x = spender
                 intersection_y = revenue_contribution
                 # Plot the vertical line up to the intersection point
@@ -431,7 +439,8 @@ class LTVexploratory:
             print("Warning: the histogram is based on the first 60 days of the data.")
             days_limit = 60
 
-        # Remove customers who never had a purchase and ensure all customers have the same opportunity window
+        # Remove customers who never had a purchase and ensure all customers
+        # have the same opportunity window
         data = data[data[self.value_col] > 0]
         data["dsi"] = (
             (data[self.event_time_col] - data[self.registration_time_col]).dt.days
@@ -448,7 +457,8 @@ class LTVexploratory:
             .reset_index()
         )
 
-        # calculate the share of customers instead of absolute numbers and numbers for the title
+        # calculate the share of customers instead of absolute numbers and
+        # numbers for the title
         data[self.uuid_col] = data[self.uuid_col] / data[self.uuid_col].sum()
         data = data[data[self.uuid_col].cumsum() < truncate_share]
 
@@ -477,7 +487,7 @@ class LTVexploratory:
             plt.xlim(data["dsi"].min() - 0.5, data["dsi"].max())
 
         # Add percentage labels on top of each bar
-        for index, row in data.iterrows():
+        for _, row in data.iterrows():
             plt.text(
                 row["dsi"],
                 row[self.uuid_col],
@@ -512,7 +522,8 @@ class LTVexploratory:
              - optimization_window: number of days from registration that the optimization of the marketing campaigns are operated
              - interval_size: number of days between two values shown in the correlation matrix. If None, the method finds the best interval based in the data size
         """
-        # Filters customers to ensure that all have the same opportunity to generate revenue until [days_limits] after registration
+        # Filters customers to ensure that all have the same opportunity to
+        # generate revenue until [days_limits] after registration
         end_events_date = self.joined_df[self.event_time_col].max()
         cohort_filter = (
             end_events_date - self.joined_df[self.registration_time_col]
@@ -525,7 +536,8 @@ class LTVexploratory:
             cohort_filter & opportunity_filter
         ].copy()
 
-        # Create a new dataframe for cross join, so we can ensure that all customers have (days_limit + 1) days to calculate correlation
+        # Create a new dataframe for cross join, so we can ensure that all
+        # customers have (days_limit + 1) days to calculate correlation
         days_data = pd.DataFrame(
             {
                 "days_since_install": np.linspace(
@@ -541,7 +553,8 @@ class LTVexploratory:
             customer_revenue_data, days_data, on="key"
         ).drop("key", axis=1)
 
-        # Calculates the revenue of each customer until N days after registration (as the customer doesn't necessarily spend on all days)
+        # Calculates the revenue of each customer until N days after
+        # registration (as the customer doesn't necessarily spend on all days)
         customer_revenue_data[self.value_col] = (
             customer_revenue_data["days_since_registration"]
             <= customer_revenue_data["days_since_install"]
@@ -553,24 +566,25 @@ class LTVexploratory:
             .sum()
             .reset_index()
         )
-        # Calculate correlation, extract the correlation only for the 'early revenue' and plot it
+        # Calculate correlation, extract the correlation only for the 'early
+        # revenue' and plot it
         customer_revenue_data = customer_revenue_data.pivot(
             index=self.uuid_col, columns="days_since_install", values=self.value_col
         ).reset_index()
         customer_revenue_data = customer_revenue_data.drop(self.uuid_col, axis=1).corr()
 
-        # Filter out only some of the days, otherwise there will have too much granularity for visualization
+        # Filter out only some of the days, otherwise there will have too much
+        # granularity for visualization
         interval_size = (
             interval_size
             if interval_size is not None
             else np.round((days_limit - optimization_window) / 20)
         )
-        interval_size = interval_size.astype(
-            int
-        )  # doesn't work if applied directly on the output of np.round for some reason
-        days_of_interest = [
-            i for i in range(optimization_window, days_limit, interval_size)
-        ]
+        # doesn't work if applied directly on the output of np.round for some
+        # reason
+        interval_size = interval_size.astype(int)
+        days_of_interest = list(range(optimization_window, days_limit, interval_size))
+
         customer_revenue_data = customer_revenue_data[days_of_interest][
             customer_revenue_data.index.isin(days_of_interest)
         ]
@@ -624,13 +638,15 @@ class LTVexploratory:
             >= days_limit
         ].copy()
 
-        # Remove customers who never had a purchase and ensure all customers have the same opportunity window
+        # Remove customers who never had a purchase and ensure all customers
+        # have the same opportunity window
         data = data[
             (data[self.event_time_col] - data[self.registration_time_col]).dt.days
             <= days_limit
         ]
 
-        # Count how many purchase customers had (defined by value > 0) and then how many customers are in each place
+        # Count how many purchase customers had (defined by value > 0) and then
+        # how many customers are in each place
         data = data[data[self.value_col] > 0]
         data["dsi"] = (
             (data[self.event_time_col] - data[self.registration_time_col]).dt.days
@@ -774,7 +790,9 @@ class LTVexploratory:
             ]
         ]
 
-        # Create a new column for the actual customer count because the modified customer column is somehow used in the flow chart UI rendering.
+        # Create a new column for the actual customer count because the
+        # modified customer column is somehow used in the flow chart UI
+        # rendering.
         data["customer_count"] = data["customers"]
         data["customers"] = data["customers"] / data["customers"].sum()
         self.interactive_chart.legend_out = True
@@ -875,7 +893,8 @@ class LTVexploratory:
             days_limit, early_limit, spending_breaks.copy(), spending_breaks.copy()
         )
 
-        # Apply the average LTV of the highest-spending class to all spending classes
+        # Apply the average LTV of the highest-spending class to all spending
+        # classes
         data["assumed_average_new_late_revenue"] = self._get_upper_limit_ltv(
             data, is_mobile
         )
