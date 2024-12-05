@@ -176,7 +176,8 @@ class LTVexploratory:
             """
         )
 
-        data_events = self.joined_df[~self.joined_df[self.event_time_col].isnull()]
+        data_events = self.joined_df[~self.joined_df[self.event_time_col].isnull(
+        )]
         print(
             f"""
             table:         self.data_event
@@ -212,7 +213,8 @@ class LTVexploratory:
         cross_uuid = pd.merge(
             customers_uuids, events_uuids, on=self.uuid_col, how="outer"
         )
-        cross_uuid["customers"] = cross_uuid["customers"].fillna("Not in customers")
+        cross_uuid["customers"] = cross_uuid["customers"].fillna(
+            "Not in customers")
         cross_uuid["events"] = cross_uuid["events"].fillna("Not in Events")
         cross_uuid = (
             cross_uuid.groupby(["customers", "events"])[self.uuid_col]
@@ -244,7 +246,8 @@ class LTVexploratory:
         complete_data[self.uuid_col] = complete_data[self.uuid_col] / np.sum(
             complete_data[self.uuid_col]
         )
-        fig = self.graph.grid_plot(complete_data, "customers", "events", self.uuid_col)
+        fig = self.graph.grid_plot(
+            complete_data, "customers", "events", self.uuid_col)
         return fig, complete_data
 
     def plot_purchases_distribution(
@@ -262,14 +265,16 @@ class LTVexploratory:
         # Select only customers that are at least [days_limit] days old
         end_events_date = self.joined_df[self.event_time_col].max()
         data = self.joined_df[
-            (end_events_date - self.joined_df[self.registration_time_col]).dt.days
+            (end_events_date -
+             self.joined_df[self.registration_time_col]).dt.days
             >= days_limit
         ].copy()
 
         # Remove customers who never had a purchase and ensure all customers
         # have the same opportunity window
         data = data[
-            (data[self.event_time_col] - data[self.registration_time_col]).dt.days
+            (data[self.event_time_col] -
+             data[self.registration_time_col]).dt.days
             <= days_limit
         ]
 
@@ -283,7 +288,8 @@ class LTVexploratory:
         )
         data = data.drop(self.uuid_col, axis=1)
         data = data.rename(columns={"count": "purchases"})
-        data = data.groupby("purchases")["sum"].agg(["sum", "count"]).reset_index()
+        data = data.groupby("purchases")["sum"].agg(
+            ["sum", "count"]).reset_index()
         # Calculate the share
         data["sum"] = data["sum"] / data["sum"].sum()
         data["count"] = data["count"] / data["count"].sum()
@@ -324,14 +330,16 @@ class LTVexploratory:
         # Select only customers that are at least [days_limit] days old
         end_events_date = self.joined_df[self.event_time_col].max()
         data = self.joined_df[
-            (end_events_date - self.joined_df[self.registration_time_col]).dt.days
+            (end_events_date -
+             self.joined_df[self.registration_time_col]).dt.days
             >= days_limit
         ].copy()
 
         # Remove customers who never had a purchase and ensure all customers
         # have the same opportunity window
         data = data[
-            (data[self.event_time_col] - data[self.registration_time_col]).dt.days
+            (data[self.event_time_col] -
+             data[self.registration_time_col]).dt.days
             <= days_limit
         ]
 
@@ -430,7 +438,8 @@ class LTVexploratory:
 
         end_events_date = self.joined_df[self.event_time_col].max()
         data = self.joined_df[
-            (end_events_date - self.joined_df[self.registration_time_col]).dt.days
+            (end_events_date -
+             self.joined_df[self.registration_time_col]).dt.days
             >= days_limit
         ].copy()
 
@@ -443,7 +452,8 @@ class LTVexploratory:
         # have the same opportunity window
         data = data[data[self.value_col] > 0]
         data["dsi"] = (
-            (data[self.event_time_col] - data[self.registration_time_col]).dt.days
+            (data[self.event_time_col] -
+             data[self.registration_time_col]).dt.days
         ).fillna(0)
         data = data[data["dsi"] <= days_limit]
 
@@ -571,7 +581,8 @@ class LTVexploratory:
         customer_revenue_data = customer_revenue_data.pivot(
             index=self.uuid_col, columns="days_since_install", values=self.value_col
         ).reset_index()
-        customer_revenue_data = customer_revenue_data.drop(self.uuid_col, axis=1).corr()
+        customer_revenue_data = customer_revenue_data.drop(
+            self.uuid_col, axis=1).corr()
 
         # Filter out only some of the days, otherwise there will have too much
         # granularity for visualization
@@ -583,7 +594,8 @@ class LTVexploratory:
         # doesn't work if applied directly on the output of np.round for some
         # reason
         interval_size = interval_size.astype(int)
-        days_of_interest = list(range(optimization_window, days_limit, interval_size))
+        days_of_interest = list(
+            range(optimization_window, days_limit, interval_size))
 
         customer_revenue_data = customer_revenue_data[days_of_interest][
             customer_revenue_data.index.isin(days_of_interest)
@@ -605,10 +617,12 @@ class LTVexploratory:
                 break
 
         # Calculate the x and y coordinate of the vertical line
-        x_coord = (day_below_threshold - optimization_window) / interval_size + 0.5
+        x_coord = (day_below_threshold - optimization_window) / \
+            interval_size + 0.5
         # only 1 block down from the diagonal
         y_coord = (optimization_window - 0.4) / optimization_window
-        plt.axvline(x=x_coord, ymin=0, ymax=y_coord, color="red", linestyle="--")
+        plt.axvline(x=x_coord, ymin=0, ymax=y_coord,
+                    color="red", linestyle="--")
         return fig, customer_revenue_data
 
     @staticmethod
@@ -634,14 +648,16 @@ class LTVexploratory:
         # Select only customers that are at least [days_limit] days old
         end_events_date = self.joined_df[self.event_time_col].max()
         data = self.joined_df[
-            (end_events_date - self.joined_df[self.registration_time_col]).dt.days
+            (end_events_date -
+             self.joined_df[self.registration_time_col]).dt.days
             >= days_limit
         ].copy()
 
         # Remove customers who never had a purchase and ensure all customers
         # have the same opportunity window
         data = data[
-            (data[self.event_time_col] - data[self.registration_time_col]).dt.days
+            (data[self.event_time_col] -
+             data[self.registration_time_col]).dt.days
             <= days_limit
         ]
 
@@ -649,7 +665,8 @@ class LTVexploratory:
         # how many customers are in each place
         data = data[data[self.value_col] > 0]
         data["dsi"] = (
-            (data[self.event_time_col] - data[self.registration_time_col]).dt.days
+            (data[self.event_time_col] -
+             data[self.registration_time_col]).dt.days
         ).fillna(0)
         data["early_revenue"] = data.apply(
             lambda x: (x["dsi"] <= early_limit) * x[self.value_col], axis=1
@@ -675,7 +692,8 @@ class LTVexploratory:
             spending_breaks["Medium spend"] = np.percentile(
                 non_zero_data["early_revenue"], 66.67
             ).round(2)
-            spending_breaks["High spend"] = np.ceil(data["early_revenue"].max())
+            spending_breaks["High spend"] = np.ceil(
+                data["early_revenue"].max())
             print("Starting spending breaks:", spending_breaks)
 
         # Adding default end spending breaks if there was none.
@@ -689,7 +707,8 @@ class LTVexploratory:
             end_spending_breaks["Medium spend"] = np.percentile(
                 non_zero_data["late_revenue"], 66.67
             ).round(2)
-            end_spending_breaks["High spend"] = np.ceil(data["late_revenue"].max())
+            end_spending_breaks["High spend"] = np.ceil(
+                data["late_revenue"].max())
             print("Ending spending breaks:", end_spending_breaks)
 
         # Spending breaks needs to be sorted in ascending order
@@ -722,7 +741,8 @@ class LTVexploratory:
             ]
             .apply(summary)
             .sort_values(
-                ["average_cumulative_early_revenue", "average_cumulative_late_revenue"]
+                ["average_cumulative_early_revenue",
+                    "average_cumulative_late_revenue"]
             )
             .reset_index()
         )
@@ -766,10 +786,12 @@ class LTVexploratory:
             ordered=True,
             categories=["No spend", "Low spend", "Medium spend", "High spend"],
         )
-        visualization_data.sort_values(["early_class", "late_class"], inplace=True)
+        visualization_data.sort_values(
+            ["early_class", "late_class"], inplace=True)
         # Add new columns
         visualization_data["perc_total_customers"] = (
-            visualization_data["customers"] / visualization_data["customers"].sum()
+            visualization_data["customers"] /
+            visualization_data["customers"].sum()
         ) * 100
 
         # add a percentage sign in front of the values
@@ -828,7 +850,8 @@ class LTVexploratory:
         For each combination of (early class, late class), find the largest LTV in each (early_class). This is the best case scenario LTV
         """
         upper_ltv_df = (
-            users_flow_df.groupby(["early_class"])["average_cumulative_late_revenue"]
+            users_flow_df.groupby(["early_class"])[
+                "average_cumulative_late_revenue"]
             .max()
             .reset_index()
             .rename(

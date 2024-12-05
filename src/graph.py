@@ -298,7 +298,8 @@ class Graph:
                 palette=palette,
             )
 
-            grid = self._set_standard(data, grid, x_axis, xlabel, ylabel, title)
+            grid = self._set_standard(
+                data, grid, x_axis, xlabel, ylabel, title)
             if y_format == "%":
                 plt.gca().yaxis.set_major_formatter(PercentFormatter(1))
             elif y_format is not None:
@@ -374,7 +375,8 @@ class Graph:
                 alpha=self.bar_transparency,
             )
 
-            grid = self._set_standard(data, grid, x_axis, xlabel, ylabel, title)
+            grid = self._set_standard(
+                data, grid, x_axis, xlabel, ylabel, title)
             if y_format == "%":
                 plt.gca().yaxis.set_major_formatter(PercentFormatter(1))
             elif y_format is not None:
@@ -561,7 +563,8 @@ class InteractiveChart:
         Apply font standards to all text parts of the
         """
         fig.update_layout(font={"family": self.font, "size": self.txt_size})
-        fig.update_layout(title_font={"family": self.font, "size": self.title_size})
+        fig.update_layout(
+            title_font={"family": self.font, "size": self.title_size})
 
         fig.update_layout(xaxis_title="", yaxis_title="")
         fig.update_layout(autosize=True)
@@ -732,8 +735,10 @@ class InteractiveChart:
             )
 
             # Lag to get next position, because plotly receives where nodes begin
-            y_positions_source = lag(y_positions_source, 1, coalesce=classes_gap)
-            y_positions_target = lag(y_positions_target, 1, coalesce=classes_gap)
+            y_positions_source = lag(
+                y_positions_source, 1, coalesce=classes_gap)
+            y_positions_target = lag(
+                y_positions_target, 1, coalesce=classes_gap)
 
             return y_positions_source + y_positions_target
 
@@ -750,7 +755,7 @@ class InteractiveChart:
 
         def hex_to_rgb(hex_color):
             hex_color = hex_color.lstrip("#")
-            return tuple(int(hex_color[i : i + 2], 16) for i in (0, 2, 4))  # noqa: E203
+            return tuple(int(hex_color[i: i + 2], 16) for i in (0, 2, 4))  # noqa: E203
 
         def get_custom_data(
             sources, targets, quantity, data
@@ -900,7 +905,8 @@ def save_plot(fig, file_path: str, dpi: int = 200) -> None:
         current_dpi = 2160 / 14.6
         rescaled_height = fig.layout.height * dpi / current_dpi
         rescaled_width = fig.layout.width * dpi / current_dpi
-        fig.write_image(file_path, height=rescaled_height, width=rescaled_width)
+        fig.write_image(file_path, height=rescaled_height,
+                        width=rescaled_width)
     elif isinstance(fig, matplotlib.figure.Figure):
         fig.savefig(file_path, bbox_inches="tight", dpi=dpi)
     else:
