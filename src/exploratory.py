@@ -165,27 +165,30 @@ class LTVexploratory:
         ].drop_duplicates()
         print(
             f"""
-            table:         data_customers
-            date start:    {data_customers[self.registration_time_col].min()}
-            date end:      {data_customers[self.registration_time_col].max()}
-            period:        {(data_customers[self.registration_time_col].max()-data_customers[self.registration_time_col].min()).days/365:.2f} years
-            customers:     {data_customers[self.uuid_col].nunique():,d}
-            events:        {data_customers.shape[0]:,d}
-            """
+    **Customer Data Table**
+    - Date start:    {data_customers[self.registration_time_col].min()}
+    - Date end:      {data_customers[self.registration_time_col].max()}
+    - Period:        {(data_customers[self.registration_time_col].max()-data_customers[self.registration_time_col].min()).days/365:.2f} years
+    - Total Customers: {data_customers[self.uuid_col].nunique():,d} customers.
+    - Total Events: {data_customers.shape[0]:,d} events.
+    """
         )
-
         data_events = self.joined_df[~self.joined_df[self.event_time_col].isnull()]
+        unique_event_types = data_events[self.event_name_col].nunique()
+        event_list = list(data_events[self.event_name_col].unique())
+
         print(
             f"""
-            table:         self.data_event
-            date start:    {data_events[self.event_time_col].min()}
-            date end:      {data_events[self.event_time_col].max()}
-            period:        {(data_events[self.event_time_col].max()-data_events[self.event_time_col].min()).days/365:.2f} years
-            customers:     {data_events[self.uuid_col].nunique():,d}
-            events:        {data_events.shape[0]:,d}
-            unique events: {data_events[self.event_name_col].nunique():,d}
-            events / customer: {(data_events.shape[0] / data_events[self.uuid_col].nunique()):.2f}
-            """
+    **Event Data Table**
+    - Date start:    {data_events[self.event_time_col].min()}
+    - Date end:      {data_events[self.event_time_col].max()}
+    - Period:        {(data_events[self.event_time_col].max()-data_events[self.event_time_col].min()).days/365:.2f} years
+    - Total Customers: {data_events[self.uuid_col].nunique():,d} customers.
+    - Total Events: {data_events.shape[0]:,d} events.
+    - Unique Event Types: {unique_event_types}.
+    - Event list: {event_list}
+    - Average Events per Customer: {(data_events.shape[0] / data_events[self.uuid_col].nunique()):.2f} events/customer.
+    """
         )
 
     # All plot methods
@@ -462,8 +465,8 @@ class LTVexploratory:
             data,
             x_axis="dsi",
             y_axis=self.uuid_col,
-            xlabel="",
-            ylabel="",
+            xlabel="Days Since Registration",
+            ylabel="% Purchased Customers",
             y_format="%",
             title=title,
         )
@@ -580,6 +583,8 @@ class LTVexploratory:
         fig = self.graph.heatmap_plot(
             customer_revenue_data,
             title="Correlation matrix of revenue per user by different days since registration\n",
+            xlabel="Days Since Registration",
+            ylabel="Days Since Registration",
         )
 
         # Highlight the day when correlation drops below 50%
