@@ -1,7 +1,9 @@
 ---
 name: Lint
 
-on: [push, pull_request]
+on: # yamllint disable-line rule:truthy
+  push: null
+  pull_request: null
 
 permissions: {}
 
@@ -27,4 +29,4 @@ jobs:
       - name: Super-linter
         uses: super-linter/super-linter@v7.2.0 # x-release-please-version
         env:
-          - VALIDATE_PYTHON_FLAKE8: true
+          VALIDATE_PYTHON_FLAKE8: true
