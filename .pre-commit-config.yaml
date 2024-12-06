@@ -1,0 +1,19 @@
+# Copyright (c) Meta Platforms, Inc. and affiliates.
+
+# This source code is licensed under the BSD-style license found in the
+# LICENSE file in the root directory of this source tree.
+repos:
+-   repo: https://github.com/hhatto/autopep8
+    rev: v2.3.1  # select the tag or revision you want, or run `pre-commit autoupdate`
+    hooks:
+    -   id: autopep8
+-   repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+    -   id: check-yaml
+    -   id: end-of-file-fixer
+    -   id: trailing-whitespace
+-   repo: https://github.com/kynan/nbstripout
+    rev: 0.5.0
+    hooks:
+        - id: nbstripout

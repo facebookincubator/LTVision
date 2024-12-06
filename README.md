@@ -60,6 +60,11 @@ git clone https://github.com/facebookincubator/LTVision.git
     pip3 install -r requirements.txt
     ```
 
+  * Install pre-commit hooks
+    ```
+    pre-commit install
+    ```
+
   * Run jupyter notebook with created environment.
 
     To run this step, first make sure that `jupyter notebook`, `ipython` and `ipykernel` packages are installed.
