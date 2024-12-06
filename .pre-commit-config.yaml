@@ -1,3 +1,7 @@
+# Copyright (c) Meta Platforms, Inc. and affiliates.
+
+# This source code is licensed under the BSD-style license found in the
+# LICENSE file in the root directory of this source tree.
 repos:
 -   repo: https://github.com/hhatto/autopep8
     rev: v2.3.1  # select the tag or revision you want, or run `pre-commit autoupdate`
