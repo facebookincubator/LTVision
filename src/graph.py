@@ -298,7 +298,8 @@ class Graph:
                 palette=palette,
             )
 
-            grid = self._set_standard(data, grid, x_axis, xlabel, ylabel, title)
+            grid = self._set_standard(
+                data, grid, x_axis, xlabel, ylabel, title)
             if y_format == "%":
                 plt.gca().yaxis.set_major_formatter(PercentFormatter(1))
             elif y_format is not None:
@@ -374,7 +375,8 @@ class Graph:
                 alpha=self.bar_transparency,
             )
 
-            grid = self._set_standard(data, grid, x_axis, xlabel, ylabel, title)
+            grid = self._set_standard(
+                data, grid, x_axis, xlabel, ylabel, title)
             if y_format == "%":
                 plt.gca().yaxis.set_major_formatter(PercentFormatter(1))
             elif y_format is not None:
@@ -560,8 +562,10 @@ class InteractiveChart:
         """
         Apply font standards to all text parts of the
         """
-        fig.update_layout(font=dict(family=self.font, size=self.txt_size))
-        fig.update_layout(title_font=dict(family=self.font, size=self.title_size))
+        fig.update_layout(font={"family": self.font, "size": self.txt_size})
+        fig.update_layout(
+            title_font={"family": self.font, "size": self.title_size})
+
         fig.update_layout(xaxis_title="", yaxis_title="")
         fig.update_layout(autosize=True)
 
@@ -575,7 +579,7 @@ class InteractiveChart:
         """
         fig.update_layout(plot_bgcolor="#F1F1F1", paper_bgcolor="white")
         fig.update_layout(
-            xaxis=dict(linecolor="lightgray"), yaxis=dict(linecolor="lightgray")
+            xaxis={"linecolor": "lightgray"}, yaxis={"linecolor": "lightgray"}
         )
         fig.update_layout(width=self.img_shape[0], height=self.img_shape[1])
 
@@ -593,7 +597,7 @@ class InteractiveChart:
 
     @staticmethod
     def _transform_yaxis_in_dollars(fig, precision: int = 0):
-        fig.update_layout(yaxis=dict(tickformat=f"$.{precision}"))
+        fig.update_layout(yaxis={"tickformat": f"$.{precision}"})
 
     def _transform_yaxis_tickformat(self, fig, tickformat: str, precision: int) -> None:
         if tickformat == "":
@@ -609,7 +613,7 @@ class InteractiveChart:
 
     @staticmethod
     def _append_txt_to_yaxis_labels(fig, precision: int = 0):
-        fig.update_layout(yaxis=dict(tickformat=f"$.{precision}"))
+        fig.update_layout(yaxis={"tickformat": f"$.{precision}"})
 
     @staticmethod
     def _add_title(fig, title: str) -> None:
@@ -628,7 +632,7 @@ class InteractiveChart:
         self._transform_yaxis_tickformat(fig, tickformat, precision)
         self._apply_standards(fig)
         self._add_title(fig, title)
-        fig.update_traces(line=dict(width=1))
+        fig.update_traces(line={"width": 1})
         return fig
 
     def bar_chart(
@@ -731,8 +735,10 @@ class InteractiveChart:
             )
 
             # Lag to get next position, because plotly receives where nodes begin
-            y_positions_source = lag(y_positions_source, 1, coalesce=classes_gap)
-            y_positions_target = lag(y_positions_target, 1, coalesce=classes_gap)
+            y_positions_source = lag(
+                y_positions_source, 1, coalesce=classes_gap)
+            y_positions_target = lag(
+                y_positions_target, 1, coalesce=classes_gap)
 
             return y_positions_source + y_positions_target
 
@@ -749,7 +755,7 @@ class InteractiveChart:
 
         def hex_to_rgb(hex_color):
             hex_color = hex_color.lstrip("#")
-            return tuple(int(hex_color[i : i + 2], 16) for i in (0, 2, 4))
+            return tuple(int(hex_color[i: i + 2], 16) for i in (0, 2, 4))  # noqa: E203
 
         def get_custom_data(
             sources, targets, quantity, data
@@ -843,28 +849,30 @@ class InteractiveChart:
             sources, targets, quantity, data
         )
 
-        node = dict(
-            pad=pad_size,
-            thickness=20,
-            line=dict(color="grey", width=0.5),
-            color=[
+        node = {
+            "pad": pad_size,
+            "thickness": 20,
+            "line": {"color": "grey", "width": 0.5},
+            "color": [
                 f"rgba({r}, {g}, {b}, 0.8)"
                 for r, g, b in [hex_to_rgb(c) for c in palette]
             ],
-            x=x_positions,
-            y=y_positions,
-            label=nodes,
-            customdata=node_custom_data,
-            hovertemplate="%{customdata.text}<extra>%{customdata.number_of_customers} customers</extra>",
-        )
-        link = dict(
-            source=sources_idxs,
-            target=targets_idxs,
-            color=[node["color"][src].replace("0.8", str(0.4)) for src in sources_idxs],
-            value=quantity,
-            customdata=link_custom_data,
-            hovertemplate="%{customdata.text}<extra>%{customdata.number_of_customers} customers</extra>",
-        )
+            "x": x_positions,
+            "y": y_positions,
+            "label": nodes,
+            "customdata": node_custom_data,
+            "hovertemplate": "%{customdata.text}<extra>%{customdata.number_of_customers} customers</extra>",
+        }
+        link = {
+            "source": sources_idxs,
+            "target": targets_idxs,
+            "color": [
+                node["color"][src].replace("0.8", str(0.4)) for src in sources_idxs
+            ],
+            "value": quantity,
+            "customdata": link_custom_data,
+            "hovertemplate": "%{customdata.text}<extra>%{customdata.number_of_customers} customers</extra>",
+        }
 
         # replicate nodes so that the firsts represent the sources and the others the targets
         nodes = nodes * 2
@@ -897,7 +905,8 @@ def save_plot(fig, file_path: str, dpi: int = 200) -> None:
         current_dpi = 2160 / 14.6
         rescaled_height = fig.layout.height * dpi / current_dpi
         rescaled_width = fig.layout.width * dpi / current_dpi
-        fig.write_image(file_path, height=rescaled_height, width=rescaled_width)
+        fig.write_image(file_path, height=rescaled_height,
+                        width=rescaled_width)
     elif isinstance(fig, matplotlib.figure.Figure):
         fig.savefig(file_path, bbox_inches="tight", dpi=dpi)
     else:

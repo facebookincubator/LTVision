@@ -38,10 +38,10 @@ function HomePageCentralContent() {
           <div className={clsx('col col--6', styles.descriptionSection)}>
             <h2>A foundational Open-Source Library for Lifetime Value (LTV) prediction</h2>
               <p className={styles.descriptionSectionText}>
-                Best-in-class businesses are taking action and learning how they can incorporate their first-party data into their strategy now. 
-                Businesses who have right customer data strategy and infrastructure in place can start their journey to leverage exciting opportunity 
-                from data science methods which help predict future (long term) value of customer, referred as pLTV (predicted lifetime value) of customer. <br></br>                
-                A pLTV-focused approach to marketing  offers a significant advantage to  businesses over relying on short-term return on ad spend (ROAS) 
+                Best-in-class businesses are taking action and learning how they can incorporate their first-party data into their strategy now.
+                Businesses who have right customer data strategy and infrastructure in place can start their journey to leverage exciting opportunity
+                from data science methods which help predict future (long term) value of customer, referred as pLTV (predicted lifetime value) of customer. <br></br>
+                A pLTV-focused approach to marketing  offers a significant advantage to  businesses over relying on short-term return on ad spend (ROAS)
               and cost tactics in terms of building a profitable business.
               </p>
           </div>
