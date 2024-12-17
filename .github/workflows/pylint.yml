@@ -4,10 +4,10 @@ name: Lint
 on: # yamllint disable-line rule:truthy
   push:
     branches:
-      - origin/main
+      - main
   pull_request:
     branches:
-      - origin/main
+      - main
 
 permissions: {}
 
