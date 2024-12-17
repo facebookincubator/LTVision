@@ -33,3 +33,4 @@ jobs:
         env:
           VALIDATE_PYTHON_FLAKE8: true
           GITHUB_TOKEN: ${{ secrets.ACCESS_TOKEN_FOR_WORKFLOW }}
+          PYTHON_FLAKE8_CONFIG_FILE: .flake8
