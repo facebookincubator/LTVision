@@ -32,3 +32,4 @@ jobs:
         uses: super-linter/super-linter@v7.2.0 # x-release-please-version
         env:
           VALIDATE_PYTHON_FLAKE8: true
+          GITHUB_TOKEN: ${{ secrets.ACCESS_TOKEN_FOR_WORKFLOW }}
