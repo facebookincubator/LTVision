@@ -2,8 +2,12 @@
 name: Lint
 
 on: # yamllint disable-line rule:truthy
-  push: null
-  pull_request: null
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
 
 permissions: {}
 
@@ -15,8 +19,6 @@ jobs:
     permissions:
       contents: read
       packages: read
-      # To report GitHub Actions status checks
-      statuses: write
 
     steps:
       - name: Checkout code
@@ -30,3 +32,5 @@ jobs:
         uses: super-linter/super-linter@v7.2.0 # x-release-please-version
         env:
           VALIDATE_PYTHON_FLAKE8: true
+          GITHUB_TOKEN: ${{ secrets.ACCESS_TOKEN_FOR_WORKFLOW }}
+          PYTHON_FLAKE8_CONFIG_FILE: .flake8
