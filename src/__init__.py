@@ -4,3 +4,4 @@
 # LICENSE file in the root directory of this source tree.
 from src.exploratory import LTVexploratory  # noqa: F401
 from src.synth_data import LTVSyntheticData  # noqa: F401
+from src.synth_scenarios import EcommScenario  # noqa: F401
