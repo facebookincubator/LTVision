@@ -21,3 +21,71 @@
   align-items: center;
   justify-content: center;
 }
+
+.p-6 {
+  padding: 1.5rem;
+}
+.pb-0 {
+  padding-bottom: 0 !important;
+}
+.mb-1\.5 {
+  margin-bottom: 0.375rem;
+}
+.flex {
+  display: flex;
+}
+.items-center {
+  align-items: center;
+}
+.gap-3 {
+  gap: 0.75rem;
+}
+.font-jakarta {
+  font-family: 'Jakarta', sans-serif;
+}
+.group-hover\:text-primary {
+  transition-property: color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, -webkit-backdrop-filter;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+}
+.group:hover .group-hover\:text-primary {
+  --tw-text-opacity: 1;
+  color: rgb(37 99 235 / var(--tw-text-opacity));
+}
+.h-7 {
+  height: 1.75rem;
+}
+.w-7 {
+  width: 1.75rem;
+}
+.f1w7gpdv {
+  /* This class doesn't seem to have any styles associated with it */
+}
+.fez10in {
+  /* This class doesn't seem to have any styles associated with it */
+}
+.fg4l7m0 {
+  /* This class doesn't seem to have any styles associated with it */
+}
+___12fm75w {
+  /* This class doesn't seem to have any styles associated with it */
+}
+.text-sm {
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+}
+.text-zinc-400 {
+  --tw-text-opacity: 1;
+  color: rgb(161 161 170 / var(--tw-text-opacity));
+}
+
+.funcomponent {
+  display: block !important;
+  width: 100px !important;
+  height: 100px !important;
+  position: relative !important;
+  top: 0 !important;
+  left: 0 !important;
+  border: 1px solid black !important;
+  background-color: red !important;
+}
