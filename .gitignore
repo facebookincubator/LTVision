@@ -12,6 +12,7 @@ venv/
 
 # Ignore files related to API keys
 .env
+testenv
 
 # Ignore everything related to clients
 client_data/
