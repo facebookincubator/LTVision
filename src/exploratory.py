@@ -175,7 +175,8 @@ class LTVexploratory:
     - Total Events: {data_customers.shape[0]:,d} events.
     """
         )
-        data_events = self.joined_df[~self.joined_df[self.event_time_col].isnull()]
+        data_events = self.joined_df[~self.joined_df[self.event_time_col].isnull(
+        )]
         unique_event_types = data_events[self.event_name_col].nunique()
         event_list = list(data_events[self.event_name_col].unique())
 
@@ -473,6 +474,7 @@ class LTVexploratory:
         # numbers for the title
         data[self.uuid_col] = data[self.uuid_col] / data[self.uuid_col].sum()
         data = data[data[self.uuid_col].cumsum() < truncate_share]
+        data = data[data["dsi"] >= 0]
 
         share_customers_within_window = data[data["dsi"] <= optimization_window][
             self.uuid_col
