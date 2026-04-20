@@ -68,7 +68,7 @@ class Graph:
         self.floor_line_color = "gray"
         self.floor_line_transparency = 0.1
 
-        self.font_family = "Avenir"
+        self.font_family = "DejaVu Sans"
         self.legend_text_size = 14
         self.legend_weight = "normal"
         self.plot_style = "whitegrid"
@@ -534,7 +534,7 @@ class InteractiveChart:
     def __init__(
         self,
         legend_out: bool = False,
-        font: str = "Avenir",
+        font: str = "DejaVu Sans",
         txt_size: int = 14,
         title_size: int = 18,
         img_shape=(1200, 600),
